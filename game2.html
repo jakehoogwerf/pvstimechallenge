@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tickwick 2: The Runaway Time Train</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#1A1640; --plum:#5B2A86; --brass:#E8B13B; --brass-dark:#B07F12; --signal:#E5484D; --teal:#1E6F7A;
+  --panel:#F7F4FF; --panel-2:#E9E3F7; --ink:#221C45; --muted:#5E5880; --line:#D3CBEA;
+  --good:#23A07A; --good-soft:#D7F4EA; --bad:#D9415A; --bad-soft:#FCE3E8;
+  --clock-face:#FFFFFF; --clock-ink:#221C45; --page:#1A1640; --title:#5B2A86;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --panel:#262056; --panel-2:#332B6B; --ink:#F4F0FF; --muted:#C2BAE6; --line:#4B4285;
+    --good-soft:#18493E; --bad-soft:#4C2236; --page:#110E2C; --title:#D2B4FF; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --panel:#262056; --panel-2:#332B6B; --ink:#F4F0FF; --muted:#C2BAE6; --line:#4B4285;
+  --good-soft:#18493E; --bad-soft:#4C2236; --page:#110E2C; --title:#D2B4FF; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px); background:var(--page)}
+html,body{margin:0; min-height:100%}
+body{
+  background:var(--page);
+  background-image:radial-gradient(ellipse at 50% -10%, #3A2A7A 0%, transparent 60%);
+  color:var(--ink); font-family:"Nunito","Trebuchet MS",Arial,sans-serif; font-size:18px; line-height:1.5;
+}
+.app{max-width:800px; margin:0 auto; padding:14px 14px 40px}
+.display,h1,h2,h3{font-family:"Lilita One","Arial Black",Arial,sans-serif; font-weight:400; letter-spacing:.3px; line-height:1.1; margin:0}
+button{font:inherit; cursor:pointer}
+button:focus-visible,input:focus-visible{outline:4px solid var(--brass); outline-offset:3px}
+
+/* HUD */
+.hud{display:flex; align-items:center; justify-content:space-between; gap:8px; color:#F4F0FF; padding:2px 2px 10px; flex-wrap:wrap}
+.brand{font-family:"Lilita One",Arial,sans-serif; font-size:21px; color:var(--brass)}
+.pills{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.pill{display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); padding:4px 12px 4px 6px; border-radius:999px; font-weight:900; font-size:17px; color:#F4F0FF; border:none}
+.pill[hidden]{display:none}
+.pill svg{width:24px; height:24px}
+.steam{display:flex; gap:3px; align-items:center}
+.steam i{width:12px; height:18px; border-radius:4px; background:rgba(255,255,255,.2); transition:background .2s}
+.steam i.on{background:var(--brass)}
+.timer{font-variant-numeric:tabular-nums}
+.penalty{color:#FFB3C1; margin-left:4px}
+.progress{height:8px; background:rgba(255,255,255,.14); border-radius:999px; overflow:hidden; margin:0 2px 10px}
+.progress i{display:block; height:100%; background:linear-gradient(90deg,var(--brass),#FFD873); transition:width .3s}
+
+/* stage */
+.scene{position:relative; border-radius:24px 24px 0 0; overflow:hidden; line-height:0; box-shadow:0 14px 34px rgba(0,0,0,.4)}
+.scene svg{width:100%; height:auto; display:block}
+.scene.shake{animation:shake .4s}
+.panel{background:var(--panel); border-radius:0 0 24px 24px; padding:22px; position:relative; box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.banner{position:absolute; left:50%; top:42%; transform:translate(-50%,-50%) rotate(-4deg); font-family:"Lilita One",Arial,sans-serif; font-size:44px; color:#FFF; text-shadow:0 4px 0 var(--plum),0 0 22px rgba(232,177,59,.9); white-space:nowrap; pointer-events:none; animation:bannerIn 1.3s ease-out forwards; line-height:1}
+@keyframes bannerIn{0%{opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-14deg)}25%{opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(-4deg)}75%{opacity:1}100%{opacity:0; transform:translate(-50%,-70%) scale(1) rotate(-4deg)}}
+
+/* scene animations */
+.spin{transform-box:fill-box; transform-origin:center; animation:spin 1s linear infinite}
+.spin.slow{animation-duration:3s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.puff{transform-box:fill-box; transform-origin:center; animation:puff 2.4s ease-out infinite}
+@keyframes puff{0%{transform:translate(0,0) scale(.4); opacity:.95}100%{transform:translate(-40px,-70px) scale(1.7); opacity:0}}
+.drift{animation:drift 38s linear infinite}
+@keyframes drift{from{transform:translateX(-160px)}to{transform:translateX(800px)}}
+.twinkle{animation:tw 1.8s ease-in-out infinite alternate}
+@keyframes tw{to{opacity:.25}}
+.bob{animation:bob 1.4s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-7px)}}
+.rumble{animation:rumble .22s linear infinite}
+@keyframes rumble{50%{transform:translateY(1.5px)}}
+.flash{animation:flash 6s infinite}
+@keyframes flash{0%,90%,100%{opacity:0}91%,94%{opacity:.85}92.5%{opacity:.15}}
+.snow{animation:snow linear infinite}
+@keyframes snow{from{transform:translateY(-30px)}to{transform:translateY(310px)}}
+.glow{animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{to{opacity:.45}}
+.sleepers{animation:sleepers .5s linear infinite}
+@keyframes sleepers{to{transform:translateX(-40px)}}
+.blub{transform-box:fill-box; transform-origin:center bottom; animation:blub 1.2s ease-in-out infinite alternate}
+@keyframes blub{to{transform:scaleY(1.35)}}
+.zoom{transition:transform .9s cubic-bezier(.3,1.4,.5,1)}
+
+/* dialogue */
+.dialog{display:flex; gap:16px; align-items:flex-start}
+.portrait{flex:0 0 92px; width:92px; height:92px; border-radius:22px; overflow:hidden; border:4px solid var(--brass); background:var(--panel-2)}
+.portrait svg{width:100%; height:100%; display:block}
+.speaker{font-family:"Lilita One",Arial,sans-serif; font-size:20px; color:var(--title)}
+.line{font-size:21px; margin:2px 0 0; max-width:60ch}
+.say-in{animation:sayIn .35s ease-out}
+@keyframes sayIn{from{opacity:0; transform:translateY(8px)}}
+.row{display:flex; gap:10px; justify-content:flex-end; align-items:center; margin-top:18px; flex-wrap:wrap}
+.btn{border:none; border-radius:16px; padding:12px 24px; font-weight:900; font-size:19px; background:var(--brass); color:#2A1C00; box-shadow:0 5px 0 var(--brass-dark); transition:transform .08s}
+.btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--brass-dark)}
+.btn.ghost{background:var(--panel-2); color:var(--ink); box-shadow:0 5px 0 var(--line)}
+.btn.small{padding:8px 14px; font-size:16px}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.speak{background:none; border:2px solid var(--line); color:var(--muted); border-radius:12px; padding:6px 10px; font-weight:800; font-size:15px}
+
+/* questions */
+.qtop{display:flex; justify-content:space-between; align-items:center; gap:10px; color:var(--muted); font-size:16px; font-weight:800; margin-bottom:6px}
+.prompt{font-size:23px; font-weight:900; margin:0 0 4px}
+.context{color:var(--muted); font-size:17px; margin:0 0 12px}
+.visual{display:flex; justify-content:center; gap:22px; flex-wrap:wrap; margin:8px 0 16px}
+.clockwrap{text-align:center}
+.clockwrap svg{width:190px; height:190px}
+.clockwrap .cap{font-weight:900; margin-top:2px}
+.options{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.opt{border:3px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:18px; padding:14px 10px; font-weight:900; font-size:21px; min-height:64px; transition:transform .1s, border-color .1s}
+.opt:hover:not(:disabled){border-color:var(--brass); transform:translateY(-2px)}
+.opt.clockopt{padding:8px}
+.opt.clockopt svg{width:120px; height:120px; display:block; margin:0 auto}
+.opt.wrong{background:var(--bad-soft); border-color:var(--bad); opacity:.7; animation:shake .35s}
+.opt.right{background:var(--good-soft); border-color:var(--good); animation:pop .4s}
+.opt:disabled{cursor:default}
+@keyframes shake{20%{transform:translateX(-7px)}60%{transform:translateX(7px)}}
+@keyframes pop{50%{transform:scale(1.07)}}
+.feedback{margin-top:14px; border-radius:16px; padding:12px 16px; font-size:18px; display:none}
+.feedback.show{display:block; animation:sayIn .25s ease-out}
+.feedback.good{background:var(--good-soft); border:2px solid var(--good)}
+.feedback.hint{background:var(--bad-soft); border:2px solid var(--bad)}
+.nl{overflow-x:auto; margin:4px 0 8px}
+.nl svg{width:100%; min-width:400px; height:auto}
+.steps{list-style:none; padding:0; margin:0 0 10px}
+.steps li{padding:5px 0; color:var(--muted); font-size:17px}
+.steps li.done{color:var(--good)}
+.steps li.now{color:var(--ink); font-weight:900; font-size:20px}
+.tt{border-collapse:separate; border-spacing:0; margin:4px auto 14px; min-width:280px; background:#1C2A3A; color:#FFE9A8; border-radius:14px; overflow:hidden; font-weight:800; box-shadow:inset 0 0 0 4px #33485F}
+.tt caption{caption-side:top; font-family:"Lilita One",Arial,sans-serif; color:var(--ink); font-size:19px; padding-bottom:6px}
+.tt th{font-size:14px; color:#9FB4CC; text-align:left; padding:10px 16px 4px}
+.tt td{padding:7px 16px; border-top:1px dashed #33485F; font-size:19px}
+.tt td.time{font-variant-numeric:tabular-nums; text-align:right}
+.tt tr.hl td{background:#2E4A63; color:#FFFFFF}
+.setter{display:flex; flex-direction:column; align-items:center; gap:10px}
+.setter svg{width:230px; height:230px; touch-action:none}
+.digital{font-family:"Lilita One",Arial,sans-serif; font-size:32px; background:#1C2A3A; color:#FFE9A8; padding:2px 18px; border-radius:12px; min-width:130px; text-align:center}
+.controls{display:grid; grid-template-columns:repeat(4,auto); gap:8px; justify-content:center}
+.controls .label{grid-column:1/-1; text-align:center; color:var(--muted); font-size:15px}
+.bar{display:flex; align-items:center; gap:12px; margin:0 0 12px}
+.bar .mini{flex:0 0 52px; width:52px; height:52px; border-radius:14px; overflow:hidden; border:3px solid var(--signal)}
+.bar .mini svg{width:100%; height:100%}
+.hp{flex:1; height:20px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:2px solid var(--line)}
+.hp i{display:block; height:100%; background:linear-gradient(90deg,var(--signal),#FF8A65); transition:width .5s}
+.fuse{height:12px; background:var(--panel-2); border-radius:999px; overflow:hidden; margin:0 0 12px; border:2px solid var(--line)}
+.fuse i{display:block; height:100%; background:linear-gradient(90deg,#FFD873,var(--signal)); transition:width .2s linear}
+.fuse-label{font-size:15px; font-weight:800; color:var(--muted); margin-bottom:4px}
+
+/* title + map */
+.avatars{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin:10px 0 4px}
+.av{border:4px solid transparent; background:var(--panel-2); border-radius:20px; padding:4px; position:relative}
+.av svg{width:100%; height:auto; display:block; border-radius:14px}
+.av[aria-pressed="true"]{border-color:var(--brass); transform:translateY(-3px)}
+.av.locked svg{filter:grayscale(1) brightness(.6)}
+.av .lock{position:absolute; inset:auto 0 6px 0; text-align:center; font-size:13px; font-weight:900; color:#fff; text-shadow:0 1px 3px #000; line-height:1.2}
+.namefield{display:flex; flex-direction:column; gap:6px; margin-top:14px}
+.namefield input{font:inherit; font-size:21px; padding:10px 14px; border-radius:14px; border:3px solid var(--line); background:var(--panel-2); color:var(--ink)}
+.tickets{display:grid; gap:12px}
+.ticket{display:flex; align-items:stretch; width:100%; padding:0; border:none; text-align:left; border-radius:16px; overflow:hidden; background:var(--panel-2); color:var(--ink); box-shadow:0 4px 0 var(--line)}
+.ticket .stub{flex:0 0 76px; background:var(--plum); color:#FFE9A8; display:grid; place-items:center; font-family:"Lilita One",Arial,sans-serif; font-size:30px; border-right:4px dotted var(--panel)}
+.ticket .body{padding:12px 16px; flex:1}
+.ticket .t{font-family:"Lilita One",Arial,sans-serif; font-size:22px}
+.ticket .d{color:var(--muted); font-size:16px}
+.ticket .done{align-self:center; padding-right:16px; color:var(--good); font-weight:900; font-size:16px; white-space:nowrap}
+.ticket.locked{opacity:.5; cursor:not-allowed}
+.ticket.locked .stub{background:var(--muted)}
+.choice{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.route{border:4px solid var(--line); border-radius:20px; overflow:hidden; padding:0; background:var(--panel-2); color:var(--ink); text-align:left}
+.route:hover{border-color:var(--brass)}
+.route svg{width:100%; height:auto; display:block}
+.route span{display:block; padding:10px 14px; font-family:"Lilita One",Arial,sans-serif; font-size:22px}
+.route small{display:block; padding:0 14px 12px; color:var(--muted); font-size:15px; font-family:"Nunito",Arial,sans-serif}
+.board{width:100%; border-collapse:collapse; margin-top:10px; font-size:18px}
+.board th{text-align:left; color:var(--muted); font-size:15px; padding:6px 8px; border-bottom:2px solid var(--line)}
+.board td{padding:8px; border-bottom:1px solid var(--line)}
+.board td.n{font-family:"Lilita One",Arial,sans-serif; width:44px}
+.board tr.me td{background:var(--good-soft); font-weight:900}
+.bigtime{font-family:"Lilita One",Arial,sans-serif; font-size:60px; text-align:center; margin:4px 0; font-variant-numeric:tabular-nums}
+.status{color:var(--muted); font-size:16px; margin-top:8px}
+.rules{margin:10px 0 0; padding-left:22px}
+.ticketcert{text-align:center; border-radius:22px; padding:24px 16px; background:linear-gradient(135deg,#FFE9A8,#E8B13B); color:#2A1C00; border:4px dashed #B07F12}
+.ticketcert h2{font-size:36px; color:#5B2A86}
+.ticketcert .who{font-family:"Lilita One",Arial,sans-serif; font-size:40px; margin:8px 0}
+.ticketcert svg.hero{width:110px; height:110px; border-radius:22px; border:4px solid #5B2A86}
+
+/* confetti */
+.confetti{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:20}
+.confetti i{position:absolute; width:10px; height:14px; border-radius:2px; animation:fall 1.4s ease-in forwards}
+@keyframes fall{from{transform:translateY(0) rotate(0)}to{transform:translateY(105vh) rotate(720deg); opacity:.7}}
+
+@media (max-width:600px){
+  body{font-size:17px}
+  .options{grid-template-columns:1fr}
+  .options.clocks{grid-template-columns:1fr 1fr}
+  .opt.clockopt svg{width:100px; height:100px}
+  .portrait{flex-basis:64px; width:64px; height:64px; border-radius:16px}
+  .line{font-size:19px}
+  .clockwrap svg{width:150px; height:150px}
+  .avatars{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .choice{grid-template-columns:1fr}
+  .banner{font-size:32px}
+  .brand{font-size:18px}
+}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <div class="brand">Tickwick 2</div>
+    <div class="pills">
+      <div class="pill" title="Golden cogs"><span id="cogIcon"></span><span id="cogs">0</span></div>
+      <div class="pill" title="First-try stars"><span id="starIcon"></span><span id="stars">0</span></div>
+      <div class="pill" title="Steam power: 3 right in a row for a boost"><span aria-hidden="true">🚂</span><span class="steam" id="steam"><i></i><i></i><i></i></span></div>
+      <div class="pill timer" id="timerPill" title="Speedrun time" hidden><span aria-hidden="true">⏱</span><span id="timer">0:00.0</span><span class="penalty" id="pen"></span></div>
+      <button class="pill" id="sound" title="Sound on or off" aria-label="Sound on or off"></button>
+    </div>
+  </div>
+  <div class="progress" id="progressBar" hidden><i id="progressFill" style="width:0%"></i></div>
+  <div class="scene" id="scene"></div>
+  <div class="panel" id="panel"></div>
+</div>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+/* ================= helpers ================= */
+const $ = (id) => document.getElementById(id);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const norm = (t) => ((t % 720) + 720) % 720;
+const hourOf = (t) => Math.floor(norm(t) / 60) || 12;
+const fmt = (t) => hourOf(t) + ":" + String(norm(t) % 60).padStart(2, "0");
+function words(t) {
+  t = norm(t); const h = hourOf(t), m = t % 60, next = (h % 12) + 1;
+  if (m === 0) return h + " o’clock";
+  if (m === 15) return "quarter past " + h;
+  if (m === 30) return "half past " + h;
+  if (m === 45) return "quarter to " + next;
+  if (m < 30) return m + " minute" + (m === 1 ? "" : "s") + " past " + h;
+  const r = 60 - m; return r + " minute" + (r === 1 ? "" : "s") + " to " + next;
+}
+function dur(d) { const h = Math.floor(d / 60), m = d % 60, out = []; if (h) out.push(h + " hour" + (h > 1 ? "s" : "")); if (m || !h) out.push(m + " minute" + (m === 1 ? "" : "s")); return out.join(" "); }
+function shortDur(d) { const h = Math.floor(d / 60), m = d % 60; return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim(); }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ================= save ================= */
+const SAVE_KEY = "tickwick2-save-v1";
+function load() { try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (v) return v; } catch (e) {} return null; }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+let state = Object.assign({ name: "", hero: "fox", cogs: 0, stars: 0, done: [], route: "", sound: true, pb: 0 }, load() || {});
+
+/* ================= sound (made in the browser, no files) ================= */
+let actx = null;
+function tone(freq, dur = 0.15, type = "sine", when = 0, vol = 0.08) {
+  if (!state.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + when;
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+const SFX = {
+  right: () => { tone(660, .12, "triangle"); tone(990, .2, "triangle", .1); },
+  wrong: () => { tone(220, .22, "square", 0, .04); tone(180, .25, "square", .12, .04); },
+  steam: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, "triangle", i * .08)),
+  hit: () => { tone(140, .18, "sawtooth", 0, .07); tone(90, .3, "sawtooth", .08, .06); },
+  whistle: () => { tone(880, .35, "sine", 0, .05); tone(1175, .5, "sine", .05, .04); },
+  win: () => [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, .22, "triangle", i * .13)),
+  click: () => tone(520, .05, "sine", 0, .04),
+};
+function drawSound() { $("sound").innerHTML = `<span aria-hidden="true">${state.sound ? "🔊" : "🔇"}</span>`; $("sound").setAttribute("aria-pressed", state.sound ? "true" : "false"); }
+$("sound").onclick = () => { state.sound = !state.sound; save(); drawSound(); SFX.click(); };
+
+/* ================= confetti + banner ================= */
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(n = 40) {
+  if (reduceMotion) return;
+  const box = $("confetti"), cols = ["#E8B13B", "#E5484D", "#23A07A", "#7FB3FF", "#C58AF9", "#FFFFFF"];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("i");
+    p.style.left = Math.random() * 100 + "vw"; p.style.top = -20 - Math.random() * 80 + "px";
+    p.style.background = pick(cols); p.style.animationDelay = Math.random() * .3 + "s"; p.style.animationDuration = 1 + Math.random() * .8 + "s";
+    box.appendChild(p); setTimeout(() => p.remove(), 2400);
+  }
+}
+function banner(text) {
+  const b = document.createElement("div"); b.className = "banner"; b.textContent = text;
+  $("scene").appendChild(b); setTimeout(() => b.remove(), 1400);
+}
+function shakeScene() { const s = $("scene"); s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
+
+/* ================= art ================= */
+const ICON_COG = `<svg viewBox="0 0 40 40" aria-hidden="true"><path fill="#E8B13B" stroke="#B07F12" stroke-width="2" d="M17 2h6l1 5 4 2 4-3 4 4-3 4 2 4 5 1v6l-5 1-2 4 3 4-4 4-4-3-4 2-1 5h-6l-1-5-4-2-4 3-4-4 3-4-2-4-5-1v-6l5-1 2-4-3-4 4-4 4 3 4-2z"/><circle cx="20" cy="20" r="6" fill="#1A1640"/></svg>`;
+const ICON_STAR = `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z" fill="#FFE07A" stroke="#E8B13B" stroke-width="2"/></svg>`;
+
+function clockSVG(t, opts = {}) {
+  const r = 90, c = 100, mins = norm(t);
+  let s = `<svg viewBox="0 0 200 200" role="img" aria-label="${opts.label || "An analogue clock"}">`;
+  s += `<circle cx="100" cy="100" r="97" fill="#5B2A86"/><circle cx="100" cy="100" r="${r}" fill="var(--clock-face)" stroke="#E8B13B" stroke-width="4"/>`;
+  for (let i = 0; i < 60; i++) {
+    const a = i * 6 * Math.PI / 180, big = i % 5 === 0, r1 = r - (big ? 12 : 6), r2 = r - 3;
+    s += `<line x1="${c + r1 * Math.sin(a)}" y1="${c - r1 * Math.cos(a)}" x2="${c + r2 * Math.sin(a)}" y2="${c - r2 * Math.cos(a)}" stroke="var(--clock-ink)" stroke-width="${big ? 3 : 1.2}" stroke-linecap="round"/>`;
+  }
+  for (let n = 1; n <= 12; n++) {
+    const a = n * 30 * Math.PI / 180, rr = r - 25;
+    s += `<text x="${c + rr * Math.sin(a)}" y="${c - rr * Math.cos(a) + 6}" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="18" text-anchor="middle" fill="var(--clock-ink)">${n}</text>`;
+  }
+  const ha = (mins / 720) * 2 * Math.PI, ma = (mins % 60) * 6 * Math.PI / 180;
+  s += `<line x1="100" y1="100" x2="${c + r * .5 * Math.sin(ha)}" y2="${c - r * .5 * Math.cos(ha)}" stroke="var(--clock-ink)" stroke-width="8" stroke-linecap="round"/>`;
+  s += `<line x1="100" y1="100" x2="${c + r * .8 * Math.sin(ma)}" y2="${c - r * .8 * Math.cos(ma)}" stroke="var(--clock-ink)" stroke-width="4.5" stroke-linecap="round"/>`;
+  return s + `<circle cx="100" cy="100" r="6" fill="#E8B13B" stroke="var(--clock-ink)" stroke-width="2"/></svg>`;
+}
+
+function numberLine(stops, jumps, back = false) {
+  const W = 640, H = 170, X0 = 56, X1 = 584, Y = 120, n = stops.length - 1, xs = stops.map((_, i) => X0 + (X1 - X0) * i / n);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Number line from ${stops[0]} to ${stops[n]}"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#E8B13B"/></marker></defs>`;
+  s += `<line x1="${X0 - 24}" y1="${Y}" x2="${X1 + 24}" y2="${Y}" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+  xs.forEach((x, i) => {
+    s += `<line x1="${x}" y1="${Y - 11}" x2="${x}" y2="${Y + 11}" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+    s += `<text x="${x}" y="${Y + 40}" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="23" fill="var(--ink)">${stops[i]}</text>`;
+  });
+  jumps.forEach((lbl, i) => {
+    const a = xs[i] + 8, b = xs[i + 1] - 8, [p, q] = back ? [b, a] : [a, b], shown = lbl !== null;
+    s += `<path d="M${p},${Y - 14} C${p},${Y - 82} ${q},${Y - 82} ${q},${Y - 16}" fill="none" stroke="${shown ? "#E8B13B" : "var(--line)"}" stroke-width="5" ${shown ? "" : 'stroke-dasharray="8 7"'} marker-end="url(#ar)"/>`;
+    s += `<text x="${(xs[i] + xs[i + 1]) / 2}" y="${Y - 80}" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="22" fill="${shown ? "var(--ink)" : "var(--muted)"}">${shown ? lbl : "?"}</text>`;
+  });
+  return s + `</svg>`;
+}
+
+/* ---- heroes ---- */
+const CAP = `<path d="M22 26 Q50 6 78 26 L74 32 Q50 22 26 32 Z" fill="#221C45"/><rect x="20" y="30" width="60" height="7" rx="3.5" fill="#221C45"/><circle cx="50" cy="20" r="4.5" fill="#E8B13B"/>`;
+const eyes = (y = 52, gap = 12, r = 5) => `<circle cx="${50 - gap}" cy="${y}" r="${r}" fill="#221C45"/><circle cx="${50 + gap}" cy="${y}" r="${r}" fill="#221C45"/><circle cx="${51 - gap}" cy="${y - 2}" r="1.8" fill="#fff"/><circle cx="${51 + gap}" cy="${y - 2}" r="1.8" fill="#fff"/>`;
+const HEROES = {
+  fox: { name: "Fox", need: 0, bg: "#FFE3C2", art: `<path d="M18 46 L24 14 L42 34 Z" fill="#E8742A"/><path d="M82 46 L76 14 L58 34 Z" fill="#E8742A"/><path d="M16 46 Q50 22 84 46 Q80 80 50 88 Q20 80 16 46Z" fill="#F08A3C"/><path d="M28 62 Q50 92 72 62 Q50 74 28 62Z" fill="#FFF6EC"/>${eyes(54, 13)}<circle cx="50" cy="68" r="4.5" fill="#221C45"/>` },
+  bunny: { name: "Bunny", need: 0, bg: "#E3EEFF", art: `<ellipse cx="36" cy="18" rx="8" ry="22" fill="#D8D8E6"/><ellipse cx="64" cy="18" rx="8" ry="22" fill="#D8D8E6"/><ellipse cx="36" cy="18" rx="4" ry="15" fill="#F4B6C2"/><ellipse cx="64" cy="18" rx="4" ry="15" fill="#F4B6C2"/><ellipse cx="50" cy="60" rx="30" ry="28" fill="#ECECF5"/>${eyes(56, 12)}<path d="M46 66 h8 l-4 4z" fill="#F28AA0"/><path d="M44 74 q6 4 12 0" stroke="#221C45" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+  frog: { name: "Frog", need: 0, bg: "#DDF6D8", art: `<ellipse cx="50" cy="64" rx="34" ry="24" fill="#4FBF5C"/><circle cx="32" cy="44" r="13" fill="#4FBF5C"/><circle cx="68" cy="44" r="13" fill="#4FBF5C"/><circle cx="32" cy="44" r="8" fill="#fff"/><circle cx="68" cy="44" r="8" fill="#fff"/><circle cx="33" cy="45" r="4.5" fill="#221C45"/><circle cx="67" cy="45" r="4.5" fill="#221C45"/><path d="M32 70 Q50 84 68 70" stroke="#1D6B2A" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="26" cy="64" r="4" fill="#F28AA0" opacity=".6"/><circle cx="74" cy="64" r="4" fill="#F28AA0" opacity=".6"/>` },
+  owl: { name: "Owl", need: 0, bg: "#F1E3D3", art: `<path d="M20 34 L28 20 L38 32Z M80 34 L72 20 L62 32Z" fill="#8A5A3B"/><ellipse cx="50" cy="58" rx="32" ry="32" fill="#A9714B"/><ellipse cx="50" cy="70" rx="18" ry="16" fill="#E8C9A6"/><circle cx="36" cy="50" r="12" fill="#fff"/><circle cx="64" cy="50" r="12" fill="#fff"/><circle cx="36" cy="51" r="6" fill="#221C45"/><circle cx="64" cy="51" r="6" fill="#221C45"/><path d="M45 60 L50 70 L55 60Z" fill="#E8B13B"/>` },
+  dragon: { name: "Dragon", need: 20, bg: "#D8F3F1", art: `<path d="M26 32 L20 12 L36 26Z M74 32 L80 12 L64 26Z" fill="#F2C94C"/><ellipse cx="50" cy="58" rx="32" ry="30" fill="#2EA59A"/><ellipse cx="50" cy="72" rx="20" ry="13" fill="#9EE3D7"/>${eyes(52, 13)}<circle cx="43" cy="72" r="2.5" fill="#1B5E57"/><circle cx="57" cy="72" r="2.5" fill="#1B5E57"/><path d="M84 66 q10 -4 12 -14 q-6 4 -12 2z" fill="#FF8A3D" class="glow"/>` },
+  robot: { name: "Robot", need: 45, bg: "#E6E6F2", art: `<line x1="50" y1="8" x2="50" y2="24" stroke="#7C7C96" stroke-width="4"/><circle cx="50" cy="8" r="5" fill="#E5484D" class="glow"/><rect x="18" y="26" width="64" height="58" rx="14" fill="#B9BCD0"/><rect x="26" y="38" width="48" height="26" rx="8" fill="#221C45"/><circle cx="40" cy="51" r="6" fill="#7FE7FF"/><circle cx="60" cy="51" r="6" fill="#7FE7FF"/><rect x="36" y="70" width="28" height="6" rx="3" fill="#7C7C96"/><rect x="10" y="46" width="8" height="18" rx="3" fill="#7C7C96"/><rect x="82" y="46" width="8" height="18" rx="3" fill="#7C7C96"/>` },
+};
+const heroSVG = (k, cls = "") => { const h = HEROES[k] || HEROES.fox; return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="${h.bg}"/>${h.art}${k === "robot" ? "" : CAP.replace(/(\d+)/g, (m) => m)}</svg>`; };
+
+const PORTRAITS = {
+  Pip: `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#EADFF8"/><circle cx="26" cy="36" r="17" fill="#B8A9C9"/><circle cx="26" cy="36" r="9" fill="#F4B6C2"/><circle cx="74" cy="36" r="17" fill="#B8A9C9"/><circle cx="74" cy="36" r="9" fill="#F4B6C2"/><ellipse cx="50" cy="62" rx="28" ry="26" fill="#C9BBD8"/>${eyes(57, 10, 4.5)}<circle cx="50" cy="69" r="5" fill="#F28AA0"/><path d="M42 77 q8 5 16 0" stroke="#221C45" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M34 70h-14M34 74l-13 4M66 70h14M66 74l13 4" stroke="#7A6E8A" stroke-width="1.8"/><path d="M30 20 h40 l-6 -10 h-28z" fill="#E5484D"/></svg>`,
+  Grimsby: `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#E4DDF0"/><ellipse cx="50" cy="68" rx="28" ry="24" fill="#2B2440"/><circle cx="50" cy="44" r="21" fill="#2B2440"/><rect x="36" y="10" width="28" height="16" rx="2" fill="#7A4FB0"/><rect x="30" y="24" width="40" height="5" rx="2" fill="#7A4FB0"/><circle cx="42" cy="42" r="6" fill="#fff"/><circle cx="58" cy="42" r="6" fill="#fff"/><circle cx="43" cy="43" r="3" fill="#221C45"/><circle cx="59" cy="43" r="3" fill="#221C45"/><path d="M43 51 L50 64 L57 51Z" fill="#E8A33D"/></svg>`,
+  "Count Cuckoo": `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#FFD9D9"/><path d="M8 100 V40 L50 8 L92 40 V100Z" fill="#7A3B1E"/><rect x="22" y="38" width="56" height="62" fill="#3A1B0C"/><ellipse cx="50" cy="74" rx="22" ry="22" fill="#F2B233"/><circle cx="50" cy="56" r="17" fill="#F7C548"/><rect x="38" y="24" width="24" height="18" rx="2" fill="#221C45"/><rect x="32" y="40" width="36" height="5" rx="2" fill="#221C45"/><rect x="38" y="36" width="24" height="4" fill="#E5484D"/><circle cx="43" cy="56" r="4" fill="#221C45"/><circle cx="58" cy="56" r="7" fill="none" stroke="#E8B13B" stroke-width="2.5"/><circle cx="58" cy="56" r="3.5" fill="#221C45"/><path d="M64 62 q8 12 2 20" stroke="#E8B13B" stroke-width="1.5" fill="none"/><path d="M44 63 L52 70 L58 63Z" fill="#E5484D"/><path d="M38 70 q12 -6 24 0" stroke="#5A2E12" stroke-width="3" fill="none"/></svg>`,
+  "Conductor Clementine": `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#DDF3E6"/><ellipse cx="50" cy="88" rx="44" ry="26" fill="#5E8B3A"/><path d="M14 86 Q50 50 86 86" fill="#7DAA4E"/><ellipse cx="50" cy="52" rx="22" ry="24" fill="#A7C97A"/>${CAP.replace('M22 26 Q50 6 78 26 L74 32 Q50 22 26 32 Z', 'M28 32 Q50 14 72 32 L68 38 Q50 28 32 38 Z').replace('x="20" y="30" width="60"', 'x="26" y="36" width="48"').replace('cy="20"', 'cy="27"')}<circle cx="41" cy="54" r="8" fill="#fff" stroke="#221C45" stroke-width="2.5"/><circle cx="59" cy="54" r="8" fill="#fff" stroke="#221C45" stroke-width="2.5"/><line x1="49" y1="54" x2="51" y2="54" stroke="#221C45" stroke-width="2.5"/><circle cx="41" cy="55" r="3" fill="#221C45"/><circle cx="59" cy="55" r="3" fill="#221C45"/><path d="M42 66 q8 6 16 0" stroke="#221C45" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
+  Narrator: `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#FFE9A8"/><path d="M16 30 Q33 23 50 33 Q67 23 84 30 V76 Q67 69 50 79 Q33 69 16 76 Z" fill="#FFFDF8" stroke="#B07F12" stroke-width="3"/><path d="M50 33 V79" stroke="#B07F12" stroke-width="3"/><path d="M23 42h19M23 51h19M23 60h14M58 42h19M58 51h19M58 60h14" stroke="#D8B96A" stroke-width="3" stroke-linecap="round"/></svg>`,
+};
+const portraitFor = (who) => who === "You" ? heroSVG(state.hero) : (PORTRAITS[who] || PORTRAITS.Narrator);
+
+/* ---- scene pieces ---- */
+function starsField(n, w, h, seed = 7) { let s = ""; for (let i = 0; i < n; i++) s += `<circle class="${i % 3 ? "" : "twinkle"}" style="animation-delay:${(i % 5) * .3}s" cx="${(i * 97 + seed * 31) % w}" cy="${(i * 53 + seed * 11) % h}" r="${i % 3 ? 1.4 : 2.3}" fill="#FFF6D8"/>`; return s; }
+function grad(id, top, bottom) { return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs><rect width="640" height="300" fill="url(#${id})"/>`; }
+function cloud(x, y, s, dur, delay) { return `<g class="drift" style="animation-duration:${dur}s; animation-delay:${delay}s"><g transform="translate(${x} ${y}) scale(${s})" fill="#FFFFFF" opacity=".85"><ellipse cx="0" cy="0" rx="34" ry="14"/><ellipse cx="22" cy="-8" rx="22" ry="14"/><ellipse cx="-18" cy="-6" rx="18" ry="11"/></g></g>`; }
+function track(y, moving = true) {
+  let s = `<rect x="0" y="${y}" width="640" height="10" fill="#5A4A3A"/>`;
+  s += `<g class="${moving ? "sleepers" : ""}">`; for (let x = -40; x < 700; x += 40) s += `<rect x="${x}" y="${y - 2}" width="18" height="14" rx="2" fill="#7A5E44"/>`; s += `</g>`;
+  return s + `<rect x="0" y="${y - 4}" width="640" height="4" fill="#B9BCD0"/>`;
+}
+function train(x, y, color = "#5B2A86", rider = "", moving = true) {
+  const wheel = (cx) => `<g class="${moving ? "spin" : ""}"><circle cx="${cx}" cy="${y + 52}" r="13" fill="#221C45"/><circle cx="${cx}" cy="${y + 52}" r="9" fill="#E8B13B"/><line x1="${cx - 9}" y1="${y + 52}" x2="${cx + 9}" y2="${y + 52}" stroke="#221C45" stroke-width="3"/><line x1="${cx}" y1="${y + 43}" x2="${cx}" y2="${y + 61}" stroke="#221C45" stroke-width="3"/></g>`;
+  const puffs = moving ? [0, .8, 1.6].map((d) => `<circle class="puff" style="animation-delay:${d}s" cx="${x + 132}" cy="${y - 18}" r="12" fill="#F4F0FF"/>`).join("") : "";
+  return `<g>${puffs}<g class="${moving ? "rumble" : ""}">
+    <rect x="${x}" y="${y}" width="74" height="44" rx="6" fill="${color}"/><rect x="${x + 10}" y="${y + 8}" width="22" height="18" rx="3" fill="#FFE9A8"/><rect x="${x + 40}" y="${y + 8}" width="22" height="18" rx="3" fill="#FFE9A8"/>
+    <rect x="${x + 74}" y="${y + 14}" width="76" height="30" rx="8" fill="${color}"/><rect x="${x + 124}" y="${y - 10}" width="16" height="26" fill="#221C45"/><rect x="${x + 120}" y="${y - 14}" width="24" height="7" rx="3" fill="#221C45"/>
+    <circle cx="${x + 154}" cy="${y + 30}" r="6" fill="#FFE07A" class="glow"/><path d="M${x + 150} ${y + 44} l16 12 h-20z" fill="#E5484D"/>
+    <rect x="${x - 4}" y="${y - 6}" width="82" height="8" rx="3" fill="#E8B13B"/>${rider}</g>${wheel(x + 20)}${wheel(x + 56)}${wheel(x + 98)}${wheel(x + 132)}</g>`;
+}
+function handcar(x, y, hero) {
+  return `<g class="bob"><g transform="translate(${x} ${y})"><rect x="0" y="34" width="100" height="16" rx="4" fill="#E5484D"/><rect x="46" y="10" width="8" height="26" fill="#221C45"/><rect x="24" y="6" width="52" height="6" rx="3" fill="#E8B13B"/>
+    <g transform="translate(6 -34) scale(.42)"><svg width="100" height="100" viewBox="0 0 100 100">${HEROES[hero].art}${hero === "robot" ? "" : CAP}</svg></g>
+    <g transform="translate(60 -22) scale(.3)"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="26" cy="36" r="17" fill="#B8A9C9"/><circle cx="74" cy="36" r="17" fill="#B8A9C9"/><ellipse cx="50" cy="62" rx="28" ry="26" fill="#C9BBD8"/>${eyes(57, 10, 4.5)}<circle cx="50" cy="69" r="5" fill="#F28AA0"/></svg></g>
+    <g class="spin"><circle cx="22" cy="54" r="10" fill="#221C45"/><circle cx="22" cy="54" r="5" fill="#E8B13B"/></g><g class="spin"><circle cx="78" cy="54" r="10" fill="#221C45"/><circle cx="78" cy="54" r="5" fill="#E8B13B"/></g></g></g>`;
+}
+const cuckooRider = (x, y) => `<g transform="translate(${x} ${y})" class="bob"><ellipse cx="0" cy="0" rx="12" ry="11" fill="#F2B233"/><circle cx="0" cy="-12" r="9" fill="#F7C548"/><rect x="-7" y="-28" width="14" height="10" fill="#221C45"/><rect x="-10" y="-19" width="20" height="3" fill="#221C45"/><circle cx="3" cy="-12" r="3.5" fill="none" stroke="#E8B13B" stroke-width="1.5"/><path d="M6 -9 l8 2 l-8 3z" fill="#E5484D"/></g>`;
+
+const SCENES = {
+  station: () => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g1", "#FF9A6B", "#7A3E8E")}
+    <circle cx="520" cy="80" r="40" fill="#FFE1A6" opacity=".9"/>${cloud(80, 60, 1, 46, -10)}${cloud(300, 40, .8, 60, -30)}
+    <path d="M0 210 Q140 170 300 200 T640 190 V300 H0Z" fill="#5B2A86" opacity=".55"/>
+    <rect x="40" y="90" width="70" height="130" fill="#4A2370"/><path d="M30 92 L75 50 L120 92Z" fill="#7A4FB0"/><circle cx="75" cy="128" r="22" fill="#FFF6D8" stroke="#E8B13B" stroke-width="4"/><line x1="75" y1="128" x2="75" y2="112" stroke="#221C45" stroke-width="3"/><line x1="75" y1="128" x2="86" y2="132" stroke="#221C45" stroke-width="4"/>
+    <rect x="0" y="232" width="640" height="68" fill="#2E2050"/>${track(236)}
+    ${train(380, 182, "#5B2A86", cuckooRider(420, 168))}
+    <rect x="0" y="252" width="640" height="48" fill="#3E2C66"/><rect x="0" y="252" width="640" height="6" fill="#E8B13B"/>
+    <text x="150" y="285" font-family="Lilita One, Arial" font-size="22" fill="#FFE9A8">TICKWICK STATION</text></svg>`,
+  junction: () => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g2", "#7FD3E8", "#F7E3B5")}
+    ${cloud(60, 50, 1, 50, -5)}${cloud(380, 70, .9, 64, -40)}
+    <g class="drift" style="animation-duration:70s; animation-delay:-20s"><g transform="translate(200 40)"><path d="M0 0 a26 30 0 1 1 52 0 q0 18 -16 30 h-20 q-16 -12 -16 -30z" fill="#E5484D"/><path d="M26 -30 v60" stroke="#FFE9A8" stroke-width="4"/><rect x="16" y="36" width="20" height="14" rx="2" fill="#7A5E44"/></g></g>
+    <path d="M0 200 Q160 150 320 190 T640 170 V300 H0Z" fill="#4FBF5C"/><path d="M0 230 Q200 200 400 230 T640 220 V300 H0Z" fill="#3A9A49"/>
+    ${track(250, false)}<path d="M320 250 Q420 230 520 170 L640 120" stroke="#B9BCD0" stroke-width="5" fill="none"/>
+    <g transform="translate(300 150)"><rect x="-4" y="0" width="8" height="100" fill="#7A5E44"/><path d="M4 10 h70 l12 12 l-12 12 h-70z" fill="#FFE9A8" stroke="#7A5E44" stroke-width="3"/><path d="M-4 44 h-70 l-12 12 l12 12 h70z" fill="#FFE9A8" stroke="#7A5E44" stroke-width="3"/><text x="38" y="28" text-anchor="middle" font-family="Lilita One, Arial" font-size="13" fill="#5B2A86">VOLCANO</text><text x="-40" y="62" text-anchor="middle" font-family="Lilita One, Arial" font-size="13" fill="#1E6F7A">FROSTY</text></g>
+    <g transform="translate(470 200)"><rect x="0" y="0" width="16" height="50" fill="#221C45"/><circle cx="8" cy="12" r="6" fill="#E5484D" class="glow"/><circle cx="8" cy="30" r="6" fill="#23A07A"/></g></svg>`,
+  volcano: () => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g3", "#3B0F2E", "#E8642C")}
+    ${starsField(14, 640, 90, 3)}
+    <path d="M200 240 L330 70 L360 70 L490 240Z" fill="#4A1E2A"/><path d="M330 70 L345 92 L360 70Z" fill="#FF8A3D" class="glow"/>
+    <g class="blub"><path d="M332 72 q12 -60 24 0z" fill="#FFB347"/></g>
+    ${[0, .7, 1.4].map((d, i) => `<circle class="puff" style="animation-delay:${d}s" cx="${340 + i * 6}" cy="50" r="14" fill="#6B4A5A"/>`).join("")}
+    <path d="M338 92 q-20 60 -60 148 h20 q30 -80 48 -148z" fill="#FF6B2C" opacity=".9" class="glow"/>
+    <path d="M0 240 H640 V300 H0Z" fill="#2A0F1A"/>${track(250)}
+    <g class="blub" style="animation-delay:.4s"><ellipse cx="90" cy="242" rx="40" ry="8" fill="#FF6B2C"/></g><g class="blub" style="animation-delay:.9s"><ellipse cx="560" cy="244" rx="46" ry="8" fill="#FF6B2C"/></g></svg>`,
+  frost: () => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g4", "#2B3F7A", "#A9D8F2")}
+    <path d="M40 240 L170 70 L300 240Z" fill="#E6F3FF"/><path d="M170 70 L200 110 L180 104 L170 120 L158 104 L142 110Z" fill="#FFFFFF"/><path d="M260 240 L420 40 L580 240Z" fill="#D5E9FA"/><path d="M420 40 L456 86 L432 80 L420 98 L406 80 L384 86Z" fill="#FFFFFF"/>
+    <path d="M0 240 H640 V300 H0Z" fill="#F4FAFF"/>${track(252)}
+    ${Array.from({ length: 34 }, (_, i) => `<circle class="snow" style="animation-duration:${4 + (i % 5)}s; animation-delay:-${(i * .37) % 5}s" cx="${(i * 41) % 640}" cy="0" r="${2 + (i % 3)}" fill="#FFFFFF"/>`).join("")}
+    <g transform="translate(520 170)"><circle cx="0" cy="50" r="22" fill="#FFF"/><circle cx="0" cy="18" r="16" fill="#FFF"/><circle cx="-5" cy="15" r="2.5" fill="#221C45"/><circle cx="5" cy="15" r="2.5" fill="#221C45"/><path d="M0 19 l12 3 l-12 3z" fill="#FF8A3D"/><rect x="-11" y="-6" width="22" height="8" fill="#221C45"/></g></svg>`,
+  bridge: (p = 0) => { const hx = 30 + p * 230; return `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g5", "#1B1745", "#46407A")}
+    <rect width="640" height="300" fill="#FFFFFF" class="flash"/>
+    <path class="flash" d="M480 0 L455 70 L475 70 L445 150" stroke="#FFE07A" stroke-width="5" fill="none"/>
+    ${cloud(60, 40, 1.2, 30, -8).replace(/#FFFFFF/g, "#6E67A8")}${cloud(360, 30, 1.4, 34, -20).replace(/#FFFFFF/g, "#6E67A8")}
+    <path d="M0 230 H170 V300 H0Z M470 230 H640 V300 H470Z" fill="#2A2350"/>
+    <path d="M170 236 Q320 200 470 236" stroke="#7A5E44" stroke-width="6" fill="none"/>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<line x1="${190 + i * 42}" y1="${236 - Math.sin((i + .5) / 7 * Math.PI) * 30}" x2="${190 + i * 42}" y2="290" stroke="#7A5E44" stroke-width="4"/>`).join("")}
+    ${track(240)}${train(420, 186, "#E5484D", cuckooRider(458, 172))}${handcar(hx, 186, state.hero)}</svg>`; },
+  castle: (hp = 1) => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g6", "#120E2E", "#4B2A6E")}
+    ${starsField(30, 640, 140, 9)}<circle cx="110" cy="70" r="34" fill="#FFF0C2"/>
+    ${[0, 1, 2].map((i) => `<g class="drift" style="animation-duration:${18 + i * 6}s; animation-delay:-${i * 7}s"><path transform="translate(0 ${60 + i * 26})" d="M0 0 q8 -8 16 0 q8 -8 16 0 q-8 4 -16 2 q-8 2 -16 -2z" fill="#221C45"/></g>`).join("")}
+    <rect x="200" y="90" width="240" height="190" fill="#3A1B0C"/><path d="M180 96 L320 10 L460 96Z" fill="#7A3B1E"/>
+    <rect x="160" y="130" width="50" height="150" fill="#4B2410"/><rect x="430" y="130" width="50" height="150" fill="#4B2410"/><path d="M152 134 L185 96 L218 134Z M422 134 L455 96 L488 134Z" fill="#7A3B1E"/>
+    <circle cx="320" cy="150" r="46" fill="#FFF6D8" stroke="#E8B13B" stroke-width="6"/><line x1="320" y1="150" x2="320" y2="114" stroke="#221C45" stroke-width="4"/><line x1="320" y1="150" x2="${320 + 30 * Math.sin(hp * 6)}" y2="${150 - 30 * Math.cos(hp * 6)}" stroke="#221C45" stroke-width="6"/>
+    <rect x="296" y="208" width="48" height="56" rx="4" fill="#120E2E"/><g class="${hp > 0 ? "bob" : ""}">${cuckooRider(320, 236)}</g>
+    <path d="M0 270 H640 V300 H0Z" fill="#1E1438"/></svg>`,
+  finale: () => `<svg viewBox="0 0 640 300" aria-hidden="true">${grad("g7", "#FFB36B", "#FFE9A8")}
+    <circle cx="320" cy="210" r="90" fill="#FFF3C4"/>${cloud(80, 60, 1, 40, -12)}${cloud(420, 50, .9, 52, -30)}
+    <path d="M0 220 Q160 190 320 215 T640 205 V300 H0Z" fill="#4FBF5C"/>${track(246)}
+    ${train(250, 192, "#5B2A86", `<g transform="translate(278 158) scale(.34)"><svg width="100" height="100" viewBox="0 0 100 100">${HEROES[state.hero].art}${state.hero === "robot" ? "" : CAP}</svg></g>`)}
+    ${[60, 130, 200, 440, 520, 590].map((x, i) => `<circle class="twinkle" style="animation-delay:${i * .2}s" cx="${x}" cy="${110 + (i % 3) * 18}" r="6" fill="#E8B13B"/>`).join("")}</svg>`,
+};
+
+/* ================= question builders ================= */
+function timeOptions(t, extra = []) {
+  const set = new Set([fmt(t)]);
+  for (const c of shuffle([...extra, fmt(t + 60), fmt(t - 60), fmt(t + 5), fmt(t - 5), fmt(t + 10), fmt(t - 10)])) { if (set.size >= 4) break; set.add(c); }
+  return shuffle([...set]);
+}
+const swappedTime = (t) => { const h = hourOf(t), m = t % 60, n = Math.round(m / 5) % 12 || 12; return n * 60 + (h % 12) * 5; };
+const swappedRead = (t) => fmt(swappedTime(t));
+function durOptions(d, naive) { const set = new Set([dur(d)]); for (const c of shuffle([naive, d + 5, d - 5, d + 10, d - 10, d + 60, d - 60].filter((x) => x > 0)).map(dur)) { if (set.size >= 4) break; set.add(c); } return shuffle([...set]); }
+const naiveElapsed = (a, b) => Math.max(0, hourOf(b) - hourOf(a)) * 60 + Math.abs((b % 60) - (a % 60));
+const naiveAdd = (t, d) => hourOf(t) + Math.floor(d / 60) + ":" + String((t % 60) + (d % 60)).padStart(2, "0");
+function minOptions(x) { const set = new Set([x + " minutes"]); for (const c of shuffle([x + 5, x - 5, x + 10, 60 - x, x + 15].filter((v) => v > 0 && v !== x))) { if (set.size >= 4) break; set.add(c + " minutes"); } return shuffle([...set]); }
+const startTime = (step = 1, minH = 1, maxH = 9) => rnd(minH, maxH) * 60 + (step === 1 ? rnd(1, 59) : rnd(1, 11) * 5);
+function crossing(step, minD, maxD, minH = 1, maxH = 8) { for (;;) { const a = startTime(step, minH, maxH); let d = rnd(minD, maxD); if (step === 5) d = Math.round(d / 5) * 5; const to = 60 - (a % 60); if (d > to && (d - to) % 60 !== 0) return [a, d]; } }
+
+function qRead(t, context) {
+  return { type: "mc", prompt: "What time does this clock show?", context, visual: `<div class="clockwrap">${clockSVG(t)}</div>`, options: timeOptions(t, [swappedRead(t)]), answer: fmt(t),
+    hint: t % 60 >= 30 ? "The short hand has passed " + hourOf(t) + " but not reached " + (hourOf(t) % 12 + 1) + ". Count the minutes in 5s, then 1s." : "Find the hour with the short hand. Count in 5s to the last big number, then count on the little marks in 1s.",
+    explain: "It’s " + fmt(t) + ", or " + words(t) + "." };
+}
+function qPick(t, context) {
+  const times = new Set([norm(t)]);
+  for (const c of shuffle([t + 60, t - 60, swappedTime(t), t + 5, t - 5, t + 10].map(norm))) { if (times.size >= 4) break; times.add(c); }
+  return { type: "pick", prompt: "Which clock shows " + fmt(t) + "?", context, times: shuffle([...times]), answer: fmt(t),
+    hint: "Check the long hand first: " + (t % 60) + " minutes. Then check the short hand is near the " + hourOf(t) + ".",
+    explain: "That clock shows " + fmt(t) + ", " + words(t) + "." };
+}
+function qWords(t, context) {
+  const h = hourOf(t), m = t % 60, next = (h % 12) + 1, wrong = new Set();
+  if (m > 30) { wrong.add((60 - m) + " minutes to " + h); wrong.add((60 - m) + " minutes past " + h); } else { wrong.add(m + " minutes to " + h); wrong.add(m + " minutes past " + next); }
+  wrong.add(words(t + 5)); wrong.add(words(t - 60));
+  return { type: "mc", prompt: "Which words match this clock?", context, visual: `<div class="clockwrap">${clockSVG(t)}</div>`, options: shuffle([words(t), ...shuffle([...wrong].filter((w) => w !== words(t))).slice(0, 3)]), answer: words(t),
+    hint: m > 30 ? "The long hand is on the left side, so we say “to”. Do 60 − " + m + "." : "The long hand is on the right side, so we say “past”.", explain: fmt(t) + " is " + words(t) + "." };
+}
+const qSet = (t, prompt, context) => ({ type: "set", prompt, context, target: t, explain: "Perfect! The clock shows " + fmt(t) + "." });
+
+function qElapsedSteps(a, d, prompt, context, visual = "") {
+  const b = a + d, to = 60 - (a % 60), oc = a + to, rest = d - to;
+  return { type: "steps", prompt, context, visual,
+    line: (k) => numberLine([fmt(a), fmt(oc), fmt(b)], [k > 0 ? "+" + to + " min" : null, k > 1 ? "+" + shortDur(rest) : null]),
+    steps: [
+      { q: "Jump to the o’clock. How long from " + fmt(a) + " to " + fmt(oc) + "?", options: minOptions(to), answer: to + " minutes", hint: "Count on from " + (a % 60) + " to 60. That’s 60 − " + (a % 60) + "." },
+      { q: "Now jump from " + fmt(oc) + " to " + fmt(b) + ". How long is that?", options: durOptions(rest, rest + 10), answer: dur(rest), hint: "Count whole hours first, then the minutes left over." },
+      { q: "Add your jumps. How long altogether?", options: durOptions(d, naiveElapsed(a, b)), answer: dur(d), hint: "Add " + to + " minutes and " + dur(rest) + ". 60 minutes make 1 hour." },
+    ], explain: to + " minutes + " + dur(rest) + " = " + dur(d) + "." };
+}
+function qElapsedMC(a, d, prompt, context, clocks, visual = "") {
+  const b = a + d;
+  return { type: "mc", prompt, context, visual: clocks ? `<div class="clockwrap">${clockSVG(a)}<div class="cap">Start</div></div><div class="clockwrap">${clockSVG(b)}<div class="cap">Finish</div></div>` : visual,
+    options: durOptions(d, naiveElapsed(a, b)), answer: dur(d), hint: "Jump from " + fmt(a) + " to the next o’clock first (" + (60 - a % 60) + " minutes), then on to " + fmt(b) + ".", explain: "From " + fmt(a) + " to " + fmt(b) + " is " + dur(d) + "." };
+}
+function qFinishSteps(a, d, context) {
+  const to = 60 - (a % 60), oc = a + to, rest = d - to, b = a + d;
+  return { type: "steps", prompt: "What time will it be?", context,
+    line: (k) => numberLine([fmt(a), k > 0 ? fmt(oc) : "?", k > 2 ? fmt(b) : "?"], [k > 0 ? "+" + to + " min" : null, k > 1 ? "+" + rest + " min" : null]),
+    steps: [
+      { q: "How many minutes from " + fmt(a) + " to " + fmt(oc) + "?", options: minOptions(to), answer: to + " minutes", hint: "60 − " + (a % 60) + " = ?" },
+      { q: "We need " + d + " minutes. We’ve used " + to + ". How many are left?", options: minOptions(rest), answer: rest + " minutes", hint: d + " − " + to + " = ?" },
+      { q: "So what time will it be?", options: timeOptions(b, [naiveAdd(a, d)]), answer: fmt(b), hint: "Start at " + fmt(oc) + " and add " + rest + " minutes." },
+    ], explain: fmt(a) + " + " + to + " min = " + fmt(oc) + ", then + " + rest + " min = " + fmt(b) + "." };
+}
+function qFinishMC(a, d, context, clock) {
+  const b = a + d;
+  return { type: "mc", prompt: "What time will it be?", context, visual: clock ? `<div class="clockwrap">${clockSVG(a)}<div class="cap">Now</div></div>` : "",
+    options: timeOptions(b, [naiveAdd(a, d)]), answer: fmt(b), hint: "Jump to the next o’clock first, then add what’s left. 60 minutes make 1 hour.", explain: fmt(a) + " + " + dur(d) + " = " + fmt(b) + "." };
+}
+function qStartSteps(b, d, context) {
+  const hrs = Math.floor(d / 60), mins = d % 60, afterHrs = b - hrs * 60, back1 = b % 60, back2 = mins - back1, oc = afterHrs - back1, a = b - d;
+  return { type: "steps", prompt: "What time did it start?", context,
+    line: (k) => numberLine([k > 2 ? fmt(a) : "?", k > 1 ? fmt(oc) : "?", k > 0 ? fmt(afterHrs) : "?", fmt(b)], [k > 2 ? "−" + back2 + " min" : null, k > 1 ? "−" + back1 + " min" : null, k > 0 ? "−" + hrs + " h" : null], true),
+    steps: [
+      { q: "Count back the whole hour" + (hrs > 1 ? "s" : "") + " first. What is " + fmt(b) + " take away " + dur(hrs * 60) + "?", options: timeOptions(afterHrs), answer: fmt(afterHrs), hint: "Keep the minutes the same. Make the hour " + hrs + " smaller." },
+      { q: "Jump back to the o’clock. How many minutes from " + fmt(afterHrs) + " back to " + fmt(oc) + "?", options: minOptions(back1), answer: back1 + " minutes", hint: "How many minutes past the hour is " + fmt(afterHrs) + "?" },
+      { q: "Go back " + back2 + " more minutes (" + mins + " − " + back1 + "). What is the start time?", options: timeOptions(a), answer: fmt(a), hint: "Count back " + back2 + " minutes from " + fmt(oc) + ". That lands in the hour before." },
+    ], explain: "It started at " + fmt(a) + ". Check: " + fmt(a) + " + " + dur(d) + " = " + fmt(b) + "." };
+}
+function qStartMC(b, d, context) { const a = b - d; return { type: "mc", prompt: "What time did it start?", context, options: timeOptions(a, [fmt(b + d)]), answer: fmt(a), hint: "Count back: hours first, then back to the o’clock, then the minutes left.", explain: fmt(b) + " − " + dur(d) + " = " + fmt(a) + "." }; }
+
+/* timetable: four stops, each leg 15–55 min, some legs cross an o’clock */
+const STOPS = ["Tickwick", "Pebble Bay", "Mossy Hollow", "Crossroads", "Cloud Point", "Teapot Hill"];
+function makeTimetable() {
+  const names = [STOPS[0], ...shuffle(STOPS.slice(1)).slice(0, 3)];
+  for (;;) {
+    const t0 = rnd(7, 9) * 60 + rnd(1, 11) * 5 + (Math.random() < .5 ? rnd(1, 4) : 0); const times = [t0];
+    for (let i = 0; i < 3; i++) times.push(times[i] + rnd(3, 11) * 5 + rnd(0, 4));
+    const crosses = [0, 1, 2].filter((i) => Math.floor(times[i] / 60) !== Math.floor(times[i + 1] / 60) && times[i + 1] % 60 !== 0);
+    if (crosses.length >= 2) return { names, times };
+  }
+}
+function ttHTML(tt, hl = []) { return `<table class="tt"><caption>Time Train timetable</caption><thead><tr><th>Station</th><th style="text-align:right">Time</th></tr></thead><tbody>${tt.names.map((n, i) => `<tr class="${hl.includes(i) ? "hl" : ""}"><td>${n}</td><td class="time">${fmt(tt.times[i])}</td></tr>`).join("")}</tbody></table>`; }
+function ttPair(tt, minLegs = 1) {
+  const pairs = []; for (let i = 0; i < 3; i++) for (let j = i + minLegs; j < 4; j++) { const a = tt.times[i], b = tt.times[j]; if (Math.floor(a / 60) !== Math.floor(b / 60) && b % 60 !== 0 && a % 60 !== 0) pairs.push([i, j]); }
+  return pairs.length ? pick(pairs) : [0, 3];
+}
+
+/* ================= chapters ================= */
+const CH = {
+  station: { title: "All Aboard!", blurb: "Read the clocks at Tickwick Station", scene: "station",
+    intro: [
+      ["Narrator", "One sunny morning, Tickwick unveils its new Time Train. Its engine runs on minutes, and it keeps every clock in the land on time."],
+      ["Count Cuckoo", "Cuckoo! Cuckoo! I, Count Cuckoo, claim this train! Soon every clock will stop at MY bedtime, and nobody will ever wake me up again!"],
+      ["Conductor Clementine", "He’s stealing the Time Train! And I’m a tortoise. I can’t chase anything!"],
+      ["Pip", "{name}, it’s me, Pip! Grimsby is fixing up the old rocket handcar. While he works, read the station clocks so we know exactly when the Count left."],
+    ],
+    make: () => [
+      qRead(startTime(5, 1, 11), "The platform clock froze as the train roared past."),
+      qPick(rnd(1, 11) * 60 + rnd(1, 29), "Clementine scribbled the time on her ticket."),
+      qRead(rnd(1, 11) * 60 + rnd(31, 59), "The ticket office clock is spinning slowly to a stop."),
+      qWords(rnd(1, 11) * 60 + rnd(31, 59), "The station announcer needs the time in words."),
+      (() => { const t = rnd(1, 11) * 60 + rnd(1, 59); return qSet(t, "Set the handcar’s clock to " + fmt(t), "Drag the long hand, or use the buttons."); })(),
+    ],
+    outro: [["Grimsby", "Caw! The handcar’s ready! Hop on, {name}. Full steam ahead!"], ["You", "Let’s catch that Count!"]] },
+
+  junction: { title: "Timetable Trouble", blurb: "Use the timetable to work out how long trips take", scene: "junction",
+    intro: [
+      ["Narrator", "The chase leads to Crossroads, where the Count has scrambled the Time Train timetable."],
+      ["Pip", "If we work out how long each part of the trip takes, we can guess where the Count is heading!"],
+      ["Grimsby", "Remember the trick: jump to the o’clock first, then jump to the finish, then add your jumps."],
+    ],
+    make: () => {
+      const tt = makeTimetable(), [i1, j1] = ttPair(tt), [i2, j2] = ttPair(tt, 2), [a3, d3] = crossing(5, 15, 55), tt2 = makeTimetable(), [i4, j4] = ttPair(tt2);
+      return [
+        qElapsedSteps(tt.times[i1], tt.times[j1] - tt.times[i1], "How long from " + tt.names[i1] + " to " + tt.names[j1] + "?", "Use the timetable.", ttHTML(tt, [i1, j1])),
+        qElapsedMC(tt.times[i2], tt.times[j2] - tt.times[i2], "How long from " + tt.names[i2] + " to " + tt.names[j2] + "?", "Use the timetable.", false, ttHTML(tt, [i2, j2])),
+        qElapsedMC(a3, d3, "How long did the Count stop for water?", "Look at the station clocks.", true),
+        qElapsedMC(tt2.times[i4], tt2.times[j4] - tt2.times[i4], "The afternoon train: how long from " + tt2.names[i4] + " to " + tt2.names[j4] + "?", "This is a different timetable.", false, ttHTML(tt2, [i4, j4])),
+      ];
+    },
+    outro: [["Pip", "The tracks split here! The Count could have gone either way."], ["Grimsby", "You choose, {name}. Which way do we go?"]] },
+
+  volcano: { title: "Volcano Valley", blurb: "Find finish times before the lava pops", scene: "volcano", route: "volcano",
+    intro: [
+      ["Narrator", "The track snakes between bubbling lava pools. Geysers blast fire into the sky!"],
+      ["Grimsby", "Caw! The geysers erupt on a timetable. If we know when they’ll blow, we can zoom past safely."],
+      ["Pip", "Add on to the o’clock first, then add what’s left!"],
+    ],
+    make: () => { const [a1, d1] = crossing(5, 20, 50), [a2, d2] = crossing(1, 15, 55), [a3, d3] = crossing(5, 20, 55), [a4, d4] = crossing(1, 65, 110);
+      return [
+        qFinishSteps(a1, d1, "Big Bertha the geyser erupted at " + fmt(a1) + ". She erupts again " + d1 + " minutes later."),
+        qFinishMC(a2, d2, "The lava bridge opens " + d2 + " minutes after the time on this clock.", true),
+        qSet(a3 + d3, "The fire tunnel closes at " + fmt(a3) + " and opens " + d3 + " minutes later. Set the clock to the opening time.", "Work it out, then set the clock."),
+        qFinishMC(a4, d4, "The lava cools at " + fmt(a4) + " and stays cool for " + dur(d4) + ". When does it heat up again?", false),
+      ]; },
+    outro: [["Pip", "We made it through without a single singed whisker! I can see the Count’s smoke up ahead!"]] },
+
+  frost: { title: "Frosty Peaks", blurb: "Find finish times before the ice cracks", scene: "frost", route: "frost",
+    intro: [
+      ["Narrator", "Snow swirls around the icy mountains. The track crosses frozen lakes that crack in the sun."],
+      ["Grimsby", "Brrr! Each ice bridge only stays frozen for a while. We need to know when it will melt."],
+      ["Pip", "Add on to the o’clock first, then add what’s left!"],
+    ],
+    make: () => { const [a1, d1] = crossing(5, 20, 50), [a2, d2] = crossing(1, 15, 55), [a3, d3] = crossing(5, 20, 55), [a4, d4] = crossing(1, 65, 110);
+      return [
+        qFinishSteps(a1, d1, "The ice bridge froze at " + fmt(a1) + ". It melts " + d1 + " minutes later."),
+        qFinishMC(a2, d2, "The snowplough leaves at the time on this clock and takes " + d2 + " minutes.", true),
+        qSet(a3 + d3, "The avalanche gate shuts at " + fmt(a3) + " and opens " + d3 + " minutes later. Set the clock to the opening time.", "Work it out, then set the clock."),
+        qFinishMC(a4, d4, "The snow storm starts at " + fmt(a4) + " and lasts " + dur(d4) + ". When does it stop?", false),
+      ]; },
+    outro: [["Pip", "We’re through the snow! I can see the Count’s smoke up ahead!"]] },
+
+  bridge: { title: "The Lightning Bridge", blurb: "Race the fuse and catch up with the Count", scene: "bridge", chase: true, fuse: true,
+    intro: [
+      ["Narrator", "Thunder booms. The Time Train is racing over the Lightning Bridge, and the handcar is right behind it!"],
+      ["Count Cuckoo", "Cuckoo! You’ll never catch me! My train is far too fast!"],
+      ["Grimsby", "Every right answer pumps the handcar faster. Beat the fuse for a turbo boost!"],
+    ],
+    make: () => { const [a1, d1] = crossing(1, 20, 90), [a2, d2] = crossing(1, 20, 80), tt = makeTimetable(), [i, j] = ttPair(tt);
+      return [
+        qElapsedMC(a1, d1, "How long has the chase been going?", "The chase started at " + fmt(a1) + ". Now it’s " + fmt(a1 + d1) + ".", false),
+        qRead(rnd(1, 11) * 60 + rnd(1, 59), "A lightning bolt hit the bridge clock!"),
+        qFinishMC(a2, d2, "The storm started at " + fmt(a2) + " and lasts " + dur(d2) + ". When will it stop?", false),
+        qElapsedMC(tt.times[i], tt.times[j] - tt.times[i], "How long from " + tt.names[i] + " to " + tt.names[j] + "?", "Grimsby found the Count’s timetable.", false, ttHTML(tt, [i, j])),
+        qPick(rnd(1, 11) * 60 + rnd(31, 59), "Quick! Which clock is right?"),
+      ]; },
+    outro: [["Narrator", "With one last pump, the handcar leaps aboard the Time Train! The Count flaps away to his castle."], ["Count Cuckoo", "Cuckoo! Meet me in my Clock Castle, if you dare!"]] },
+
+  castle: { title: "Count Cuckoo’s Castle", blurb: "Beat the Count’s backwards riddles", scene: "castle", boss: true,
+    intro: [
+      ["Count Cuckoo", "Welcome to my castle! To get the Time Train’s key, you must solve my six riddles."],
+      ["Pip", "Careful, {name}. Some of these go backwards. If you know the finish time, count back to find the start!"],
+      ["Count Cuckoo", "Cuckoo! Nobody has ever solved them all!"],
+    ],
+    make: () => { const [a2, d2] = crossing(1, 70, 150), [a3, d3] = crossing(1, 20, 90);
+      const end1 = rnd(3, 10) * 60 + rnd(2, 20), d4 = rnd(1, 2) * 60 + rnd(25, 55), end2 = rnd(4, 10) * 60 + rnd(1, 30), d5 = rnd(25, 100), end3 = rnd(3, 10) * 60 + rnd(1, 25) * 2, d6 = rnd(3, 9) * 5 + 30;
+      return [
+        qRead(rnd(1, 11) * 60 + rnd(31, 59), "Riddle one: “What time does my grandfather clock say?”"),
+        qStartSteps(end1, d4, "Riddle two: “My nap ended at " + fmt(end1) + ". I slept for " + dur(d4) + ".”"),
+        qElapsedMC(a2, d2, "Riddle three: how long was the Count’s bath?", "“I hopped in at " + fmt(a2) + " and out at " + fmt(a2 + d2) + ".”", false),
+        qStartMC(end2, d5, "Riddle four: “My cuckoo song ended at " + fmt(end2) + ". I sang for " + dur(d5) + ".”"),
+        qFinishMC(a3, d3, "Riddle five: “I started polishing my monocle at " + fmt(a3) + " and polished for " + dur(d3) + ".”", false),
+        qSet(end3 - d6, "Riddle six: “My party ended at " + fmt(end3) + " and lasted " + d6 + " minutes. Set the clock to when it started!”", "Count back, then set the clock."),
+      ]; },
+    outro: [
+      ["Count Cuckoo", "Cuckoo… you solved them all. Here is the key."],
+      ["Count Cuckoo", "I only wanted to stop time because… every morning I pop out of a clock and shout. I’m so tired!"],
+      ["Conductor Clementine", "Then you can be the Time Train’s official alarm clock, but only at lunchtime. Deal?"],
+      ["Count Cuckoo", "Cuckoo! Deal!"],
+      ["Pip", "The Time Train is home, and every clock is ticking again. {name}, you’re the best conductor Tickwick has ever had!"],
+    ] },
+};
+const ORDER = ["station", "junction", "route", "bridge", "castle"];
+const chapterFor = (key) => key === "route" ? CH[state.route || "volcano"] : CH[key];
+const keyDone = (key) => key === "route" ? state.done.includes("route") : state.done.includes(key);
+
+/* ================= read aloud ================= */
+const canSpeak = "speechSynthesis" in window;
+function speak(text) { if (!canSpeak) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/−/g, " minus ")); u.rate = .95; speechSynthesis.speak(u); } catch (e) {} }
+const speakBtn = (text) => canSpeak ? `<button class="speak" data-say="${esc(text)}" aria-label="Read aloud">🔊 Read to me</button>` : "";
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-say]"); if (b) speak(b.dataset.say); });
+
+/* ================= HUD ================= */
+$("cogIcon").innerHTML = ICON_COG; $("starIcon").innerHTML = ICON_STAR; drawSound();
+function hud() { $("cogs").textContent = state.cogs; $("stars").textContent = state.stars; const n = run ? run.streak || 0 : 0; document.querySelectorAll("#steam i").forEach((el, i) => el.classList.toggle("on", i < n)); }
+function progress(frac) { if (frac === null) { $("progressBar").hidden = true; return; } $("progressBar").hidden = false; $("progressFill").style.width = Math.round(frac * 100) + "%"; }
+const nameOf = () => state.name || "Conductor";
+const fill = (s) => s.replace(/\{name\}/g, nameOf());
+function setScene(key, arg) { $("scene").innerHTML = SCENES[key](arg); }
+
+/* ================= screens ================= */
+let run = null;
+function titleScreen() {
+  showTimer(false); progress(null); setScene("station");
+  const avs = Object.keys(HEROES).map((k) => { const h = HEROES[k], locked = state.cogs < h.need && state.hero !== k;
+    return `<button class="av ${locked ? "locked" : ""}" data-hero="${k}" aria-pressed="${state.hero === k}" aria-label="${h.name}${locked ? ", unlocks at " + h.need + " cogs" : ""}" ${locked ? 'aria-disabled="true"' : ""}>${heroSVG(k)}${locked ? `<span class="lock">🔒 ${h.need} cogs</span>` : ""}</button>`; }).join("");
+  $("panel").innerHTML = `<h1 style="font-size:40px; color:var(--title)">The Runaway Time Train</h1>
+    <p class="line">Count Cuckoo has stolen Tickwick’s Time Train. Pick your hero and chase him down!</p>
+    <p style="font-weight:900; margin:14px 0 0">Choose your hero</p><div class="avatars">${avs}</div>
+    <div class="namefield"><label for="nm"><b>What’s your conductor name?</b></label><input id="nm" maxlength="20" autocomplete="off" value="${esc(state.name)}" placeholder="Type your first name"></div>
+    <div class="row">${state.done.length ? `<button class="btn ghost" id="reset">Start a new journey</button>` : ""}<button class="btn" id="go">${state.done.length ? "Keep playing" : "All aboard!"}</button></div>`;
+  document.querySelectorAll(".av").forEach((b) => b.onclick = () => {
+    if (b.classList.contains("locked")) { SFX.wrong(); return; }
+    state.hero = b.dataset.hero; save(); SFX.click();
+    document.querySelectorAll(".av").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  });
+  $("go").onclick = () => { state.name = $("nm").value.trim().slice(0, 20); save(); SFX.whistle(); mapScreen(); };
+  $("nm").onkeydown = (e) => { if (e.key === "Enter") $("go").click(); };
+  if ($("reset")) $("reset").onclick = () => { state.done = []; state.route = ""; save(); mapScreen(); };
+}
+
+function mapScreen() {
+  showTimer(false); progress(null); run = null; hud(); setScene(state.done.includes("castle") ? "finale" : "station");
+  const tickets = ORDER.map((key, i) => {
+    const unlocked = i === 0 || keyDone(ORDER[i - 1]), done = keyDone(key);
+    const c = key === "route" ? (state.route ? CH[state.route] : { title: "The Split Track", blurb: "Choose: Volcano Valley or Frosty Peaks" }) : CH[key];
+    return `<button class="ticket ${unlocked ? "" : "locked"}" data-key="${key}" ${unlocked ? "" : 'aria-disabled="true"'}><span class="stub">${i + 1}</span><span class="body"><span class="t">${c.title}</span><br><span class="d">${unlocked ? c.blurb : "Finish the stop before to unlock"}</span></span>${done ? `<span class="done">Done ✓</span>` : ""}</button>`;
+  }).join("");
+  const all = state.done.includes("castle");
+  $("panel").innerHTML = `<div class="dialog" style="align-items:center"><div class="portrait" style="flex-basis:64px; width:64px; height:64px">${heroSVG(state.hero)}</div><h2 style="font-size:28px">Your journey, ${esc(nameOf())}</h2></div>
+    <div class="tickets" style="margin-top:14px">${tickets}</div>
+    <div class="row"><a class="btn ghost small" href="index.html" style="text-decoration:none">All games</a><button class="btn ghost small" id="back">Change hero</button>${all ? `<button class="btn small" id="cert">See my golden ticket</button>` : ""}</div>
+    <h3 style="font-size:24px; margin-top:16px">Speedrun challenge</h3>
+    <p class="context" style="margin:4px 0 0">Race the whole line and get on the class leaderboard.</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn small" id="speed">⏱ Speedrun</button><button class="btn ghost small" id="lb">Class leaderboard</button></div>`;
+  document.querySelectorAll(".ticket").forEach((b) => b.onclick = () => {
+    if (b.classList.contains("locked")) return; SFX.click();
+    const key = b.dataset.key; key === "route" ? routeChoice(() => startChapter(state.route)) : startChapter(key);
+  });
+  $("back").onclick = titleScreen;
+  if ($("cert")) $("cert").onclick = certificate;
+  $("speed").onclick = speedrunIntro;
+  $("lb").onclick = leaderboardScreen;
+}
+
+function routeChoice(next) {
+  setScene("junction"); progress(null);
+  $("panel").innerHTML = `<h2 style="font-size:30px">The tracks split! Which way?</h2><p class="context">Both tracks lead to the Lightning Bridge. Pick the adventure you like.</p>
+    <div class="choice"><button class="route" data-r="volcano">${SCENES.volcano()}<span>Volcano Valley</span><small>Lava geysers and fire tunnels</small></button>
+    <button class="route" data-r="frost">${SCENES.frost()}<span>Frosty Peaks</span><small>Ice bridges and snowstorms</small></button></div>`;
+  document.querySelectorAll(".route").forEach((b) => b.onclick = () => { state.route = b.dataset.r; save(); SFX.whistle(); next(); });
+}
+
+function dialogue(lines, sceneKey, sceneArg, onDone) {
+  let i = 0; setScene(sceneKey, sceneArg);
+  const show = () => {
+    const [who, raw] = lines[i], text = fill(raw);
+    $("panel").innerHTML = `<div class="dialog say-in"><div class="portrait">${portraitFor(who)}</div><div>
+      <div class="speaker">${who === "Narrator" ? "" : who === "You" ? esc(nameOf()) : esc(who)}</div><p class="line">${esc(text)}</p></div></div>
+      <div class="row">${speakBtn(text)}<button class="btn" id="next">${i < lines.length - 1 ? "Next" : "Let’s go!"}</button></div>`;
+    if (who === "Count Cuckoo") tone(1046, .12, "sine", 0, .05), tone(784, .2, "sine", .14, .05);
+    $("next").focus({ preventScroll: true });
+    $("next").onclick = () => { if (canSpeak) speechSynthesis.cancel(); SFX.click(); i++; i < lines.length ? show() : onDone(); };
+  };
+  show();
+}
+
+function startChapter(key) {
+  const ch = CH[key];
+  dialogue(ch.intro, ch.scene, ch.chase ? 0 : (ch.boss ? 1 : undefined), () => { run = { key, qs: ch.make(), q: 0, streak: 0 }; run.hp = run.qs.length; hud(); question(); });
+}
+
+const TAUNTS = ["Cuckoo! Wrong-o!", "Ha! Not even close… well, a bit close.", "Cuckoo-cuckoo! Try again!", "My riddles are too tricky for you!"];
+const OUCH = ["Cuckoo?! How did you know?", "My feathers! My monocle!", "Lucky guess, conductor!", "Grr… my riddles are running out!"];
+const chOf = () => run.chs ? CH[run.chs[run.q]] : CH[run.key];
+
+function question() {
+  const ch = chOf(), q = run.qs[run.q];
+  progress(run.q / run.qs.length);
+  setScene(ch.scene, ch.chase ? run.q / run.qs.length : ch.boss ? run.hp / run.qs.length : undefined);
+  run.first = true; run.step = 0; clearInterval(run.fuseLoop); run.boosted = false;
+  if (q.type === "mc") renderMC(q); else if (q.type === "pick") renderPick(q); else if (q.type === "steps") renderSteps(q); else renderSet(q);
+  if (ch.fuse && !run.speed) startFuse();
+  tickStart();
+}
+
+function header(q) {
+  const ch = chOf();
+  const boss = ch.boss && !run.speed ? `<div class="bar"><div class="mini">${PORTRAITS["Count Cuckoo"]}</div><div style="flex:1"><b>Count Cuckoo’s riddle power</b><div class="hp"><i style="width:${(run.hp / run.qs.length) * 100}%"></i></div></div></div>` : "";
+  const fuse = ch.fuse && !run.speed ? `<div class="fuse-label" id="fuseLabel">Turbo fuse: answer before it burns out!</div><div class="fuse"><i id="fuseBar" style="width:100%"></i></div>` : "";
+  return `${boss}${fuse}<div class="qtop"><span>${run.speed ? "Speedrun" : ch.title}</span><span>${run.q + 1} / ${run.qs.length}</span></div>
+    <p class="prompt">${esc(q.prompt)}</p>${q.context ? `<p class="context">${esc(q.context)}</p>` : ""}`;
+}
+function startFuse() {
+  const total = 30000, t0 = performance.now();
+  run.fuseLoop = setInterval(() => {
+    const left = Math.max(0, 1 - (performance.now() - t0) / total), bar = $("fuseBar");
+    if (bar) bar.style.width = left * 100 + "%";
+    if (left <= 0) { clearInterval(run.fuseLoop); run.fuseOut = true; const l = $("fuseLabel"); if (l) l.textContent = "The fuse burnt out. No turbo this time, but keep going!"; }
+  }, 100);
+  run.fuseOut = false;
+}
+const optionsHTML = (opts) => `<div class="options">${opts.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`;
+function wire(answer, hint, onRight) {
+  document.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+    if (b.dataset.v === answer) { b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); onRight(); }
+    else { b.classList.add("wrong"); b.disabled = true; miss(hint); }
+  });
+}
+function miss(hintHTML) {
+  run.first = false; run.streak = 0; hud(); SFX.wrong();
+  const boss = chOf().boss && !run.speed;
+  feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite."}</b>${penalise()} ${hintHTML}`);
+}
+function feedback(kind, html) { const f = $("fb"); f.className = "feedback show " + kind; f.innerHTML = html; }
+
+function correct(explain) {
+  tickStop(); clearInterval(run.fuseLoop);
+  const ch = chOf(); let extra = "";
+  state.cogs++; if (run.first) { state.stars++; run.streak = (run.streak || 0) + 1; }
+  if (ch.fuse && !run.speed && !run.fuseOut) { state.cogs++; extra += " Turbo boost: +1 bonus cog!"; }
+  SFX.right();
+  if (run.streak >= 3) { run.streak = 0; state.cogs++; extra += " Full steam: +1 bonus cog!"; setTimeout(() => { SFX.steam(); banner("FULL STEAM!"); confetti(50); }, 150); }
+  save(); hud();
+  if (ch.boss && !run.speed) { run.hp--; shakeScene(); SFX.hit(); const hp = document.querySelector(".hp i"); if (hp) hp.style.width = (run.hp / run.qs.length) * 100 + "%"; setScene(ch.scene, run.hp / run.qs.length); }
+  if (ch.chase && !run.speed) setScene(ch.scene, (run.q + 1) / run.qs.length);
+  const cheer = ch.boss && !run.speed ? esc(pick(OUCH)) : pick(["Brilliant!", "Right on time!", "Choo-choo, correct!", "Super sleuthing!", "You got it!"]);
+  feedback("good", `<b>${cheer}</b> ${esc(explain)} ${run.first ? "+1 cog and a star!" : "+1 cog!"}${extra}`);
+  const row = document.createElement("div"); row.className = "row";
+  row.innerHTML = `<button class="btn" id="cont">${run.q < run.qs.length - 1 ? "Next" : run.speed ? "Finish" : "Finish this stop"}</button>`;
+  $("panel").appendChild(row); $("cont").focus({ preventScroll: true });
+  $("cont").onclick = () => { SFX.click(); run.q++; run.q < run.qs.length ? question() : (run.speed ? finishSpeedrun() : finishChapter()); };
+}
+
+function renderMC(q) {
+  $("panel").innerHTML = `${header(q)}${q.visual ? `<div class="visual">${q.visual}</div>` : ""}${optionsHTML(q.options)}<div id="fb" class="feedback" aria-live="polite"></div><div class="row">${speakBtn(q.prompt + ". " + (q.context || ""))}</div>`;
+  wire(q.answer, esc(q.hint), () => correct(q.explain));
+}
+function renderPick(q) {
+  $("panel").innerHTML = `${header(q)}<div class="options clocks">${q.times.map((t) => `<button class="opt clockopt" data-v="${fmt(t)}" aria-label="Clock option">${clockSVG(t, { label: "Clock option" })}</button>`).join("")}</div><div id="fb" class="feedback" aria-live="polite"></div><div class="row">${speakBtn(q.prompt)}</div>`;
+  wire(q.answer, esc(q.hint), () => correct(q.explain));
+}
+function renderSteps(q) {
+  const k = run.step, s = q.steps[k];
+  const list = q.steps.map((st, i) => `<li class="${i < k ? "done" : i === k ? "now" : ""}">${i < k ? "✓ " : (i + 1) + ". "}${esc(i <= k ? st.q : "…")}${i < k ? " <b>" + esc(st.answer) + "</b>" : ""}</li>`).join("");
+  const fuseKeep = $("fuseBar") ? $("fuseBar").style.width : null;
+  $("panel").innerHTML = `${header(q)}${q.visual ? `<div class="visual">${q.visual}</div>` : ""}<div class="nl">${q.line(k)}</div><ol class="steps">${list}</ol>${optionsHTML(s.options)}<div id="fb" class="feedback" aria-live="polite"></div><div class="row">${speakBtn(s.q)}</div>`;
+  if (fuseKeep && $("fuseBar")) $("fuseBar").style.width = fuseKeep;
+  wire(s.answer, esc(s.hint), () => {
+    if (k < q.steps.length - 1) { SFX.right(); feedback("good", `<b>Yes!</b> ${esc(s.answer)}. Next jump…`); tickStop(); setTimeout(() => { run.step++; renderSteps(q); tickStart(); }, run.speed ? 500 : 1000); }
+    else { document.querySelector(".nl").innerHTML = q.line(q.steps.length); correct(q.explain); }
+  });
+}
+function renderSet(q) {
+  let t = rnd(1, 11) * 60; if (norm(t) === norm(q.target)) t += 60;
+  $("panel").innerHTML = `${header(q)}<div class="setter"><div id="setClock"></div><div class="digital" id="dig" aria-live="polite">${fmt(t)}</div>
+    <div class="controls"><span class="label">Move the minute hand</span><button class="btn ghost small" data-d="-5">−5 min</button><button class="btn ghost small" data-d="-1">−1 min</button><button class="btn ghost small" data-d="1">+1 min</button><button class="btn ghost small" data-d="5">+5 min</button>
+    <span class="label">Move the hour</span><button class="btn ghost small" data-d="-60" style="grid-column:span 2">−1 hour</button><button class="btn ghost small" data-d="60" style="grid-column:span 2">+1 hour</button></div></div>
+    <div id="fb" class="feedback" aria-live="polite"></div><div class="row">${speakBtn(q.prompt)}<button class="btn" id="check">Check my clock</button></div>`;
+  let locked = false;
+  const draw = () => { $("setClock").innerHTML = clockSVG(t, { label: "Clock showing " + fmt(t) }); $("dig").textContent = fmt(t); bind(); };
+  document.querySelectorAll("[data-d]").forEach((b) => b.onclick = () => { if (locked) return; t = norm(t + +b.dataset.d); tone(700, .03, "sine", 0, .03); draw(); });
+  function bind() {
+    const svg = $("setClock").querySelector("svg"); let drag = false;
+    const at = (e) => { const r = svg.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+      const m = Math.round(((Math.atan2(x, -y) * 180 / Math.PI + 360) % 360) / 6) % 60, cur = t % 60; let h = Math.floor(norm(t) / 60);
+      if (cur > 45 && m < 15) h++; else if (cur < 15 && m > 45) h--; t = norm(h * 60 + m); draw(); };
+    svg.onpointerdown = (e) => { if (locked) return; drag = true; svg.setPointerCapture(e.pointerId); at(e); };
+    svg.onpointermove = (e) => { if (drag && !locked) at(e); };
+    svg.onpointerup = svg.onpointercancel = () => { drag = false; };
+  }
+  draw();
+  $("check").onclick = () => {
+    if (norm(t) === norm(q.target)) { locked = true; $("check").remove(); document.querySelectorAll("[data-d]").forEach((b) => b.disabled = true); correct(q.explain); }
+    else { const tm = q.target % 60, cm = t % 60;
+      const tip = hourOf(t) !== hourOf(q.target) && cm === tm ? "The minutes are right. Check the hour." : cm !== tm ? "Check the minute hand. Count in 5s to the big number, then 1s on the little marks." : "Nearly! Check the hour hand.";
+      miss(`Your clock says ${fmt(t)}. ${tip}`); }
+  };
+}
+
+function finishChapter() {
+  const key = run.key, ch = CH[key], doneKey = ch.route ? "route" : key;
+  if (!state.done.includes(doneKey)) state.done.push(doneKey);
+  save(); progress(1); SFX.whistle(); confetti(30);
+  const last = key === "castle";
+  dialogue(ch.outro, last ? "finale" : ch.scene, ch.chase ? 1 : ch.boss ? 0 : undefined, () => {
+    if (last) { SFX.win(); confetti(90); certificate(); }
+    else if (key === "junction") routeChoice(() => startChapter(state.route));
+    else mapScreen();
+  });
+}
+
+function certificate() {
+  progress(null); setScene("finale");
+  $("panel").innerHTML = `<div class="ticketcert">${heroSVG(state.hero, "hero")}<p style="margin:10px 0 0; font-weight:900">This golden ticket is awarded to</p>
+    <div class="who">${esc(nameOf())}</div><h2>Chief Conductor of Tickwick</h2>
+    <p style="font-size:19px; margin:10px auto 0; max-width:44ch">for chasing down Count Cuckoo and bringing the Time Train home.</p>
+    <p style="font-weight:900; font-size:20px; margin-top:12px">${ICON_COG.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.cogs} cogs &nbsp; ${ICON_STAR.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.stars} stars</p></div>
+    <div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn" id="again">New journey</button></div>`;
+  $("map").onclick = mapScreen;
+  $("again").onclick = () => { state.done = []; state.route = ""; save(); mapScreen(); };
+}
+
+/* ================= speedrun + class leaderboard ================= */
+const SUPABASE_URL = "https://awxmgiindzlwtgoxtxdt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
+const TABLE = "train_speedruns";
+const PENALTY_S = 10;
+const SPEED_ORDER = ["station", "junction", "volcano", "bridge", "castle"];
+let runItems = 0;
+function itemCount() { if (!runItems) runItems = SPEED_ORDER.reduce((n, k) => n + CH[k].make().reduce((c, q) => c + (q.type === "steps" ? q.steps.length : 1), 0), 0); return runItems; }
+const accuracy = (wrong) => Math.round(itemCount() / (itemCount() + wrong) * 100);
+const clockTxt = (secs) => { const m = Math.floor(secs / 60), s = secs - m * 60; return m + ":" + (s < 10 ? "0" : "") + s.toFixed(1); };
+const wholeTxt = (secs) => Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+let timerLoop = null;
+function speedTotal() { const sp = run && run.speed; if (!sp) return 0; return (sp.ms + (sp.since ? performance.now() - sp.since : 0)) / 1000 + sp.pen * PENALTY_S; }
+function tickStart() { if (run && run.speed && !run.speed.since) run.speed.since = performance.now(); }
+function tickStop() { if (run && run.speed && run.speed.since) { run.speed.ms += performance.now() - run.speed.since; run.speed.since = 0; drawTimer(); } }
+function drawTimer() { if (!run || !run.speed) return; $("timer").textContent = clockTxt(speedTotal()); $("pen").textContent = run.speed.pen ? "+" + run.speed.pen * PENALTY_S + "s" : ""; }
+function showTimer(on) { $("timerPill").hidden = !on; clearInterval(timerLoop); if (on) timerLoop = setInterval(drawTimer, 100); }
+function penalise() { if (!run || !run.speed) return ""; run.speed.pen++; drawTimer(); return ` <b>+${PENALTY_S} seconds!</b>`; }
+
+async function sb(path, opts = {}) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, { ...opts, headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", ...(opts.headers || {}) } });
+  if (!res.ok) throw new Error("Leaderboard error " + res.status);
+  return res.status === 201 || res.status === 204 ? null : res.json();
+}
+const topTen = () => sb(TABLE + "?select=player,hero,time_seconds,wrong_answers,created_at&order=time_seconds.asc,created_at.asc&limit=10");
+const sendRun = (row) => sb(TABLE, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });
+function boardHTML(rows, mine) {
+  if (!rows.length) return `<p class="status">No times yet. Be the first speedrunner!</p>`;
+  let marked = false;
+  return `<div style="overflow-x:auto"><table class="board"><thead><tr><th>#</th><th>Conductor</th><th>Time</th><th>Accuracy</th></tr></thead><tbody>${rows.map((r, i) => {
+    const me = !marked && mine && r.player === mine.player && r.time_seconds === mine.time_seconds; if (me) marked = true;
+    const face = HEROES[r.hero] ? `<span style="display:inline-block; width:28px; height:28px; vertical-align:middle; margin-right:6px; border-radius:8px; overflow:hidden">${heroSVG(r.hero)}</span>` : "";
+    return `<tr class="${me ? "me" : ""}"><td class="n">${i + 1}</td><td>${face}${esc(r.player)}</td><td>${wholeTxt(r.time_seconds)}</td><td>${accuracy(r.wrong_answers)}%</td></tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+async function fillBoard(el, mine) {
+  el.innerHTML = `<p class="status">Loading the class leaderboard…</p>`;
+  try { el.innerHTML = boardHTML(await topTen(), mine); } catch (e) { el.innerHTML = `<p class="status">The class leaderboard didn’t load. Check the internet connection and try again.</p>`; }
+}
+function leaderboardScreen() {
+  progress(null); setScene("bridge", 1);
+  $("panel").innerHTML = `<h2 style="font-size:30px">Class speedrun leaderboard</h2>${state.pb ? `<p class="context">Your personal best on this device: <b>${wholeTxt(state.pb)}</b></p>` : ""}<div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button></div>`;
+  $("map").onclick = mapScreen; fillBoard($("board"));
+}
+function speedrunIntro() {
+  progress(null); setScene("bridge", .5);
+  const total = SPEED_ORDER.reduce((n, k) => n + CH[k].make().length, 0);
+  $("panel").innerHTML = `<div class="dialog"><div class="portrait">${PORTRAITS["Count Cuckoo"]}</div><div><div class="speaker">Count Cuckoo</div><p class="line">Cuckoo! A race? Ride the whole line as fast as you can!</p></div></div>
+    <ul class="rules"><li>${total} questions from every stop, one after another.</li><li>The clock only runs while you’re answering.</li><li>Every wrong answer adds ${PENALTY_S} seconds, so don’t guess!</li></ul>
+    <div class="row"><button class="btn ghost" id="map">Back</button><button class="btn" id="go">Start the clock</button></div>`;
+  $("map").onclick = mapScreen;
+  $("go").onclick = () => {
+    const qs = [], chs = []; SPEED_ORDER.forEach((k) => CH[k].make().forEach((q) => { qs.push(q); chs.push(k); }));
+    run = { qs, chs, q: 0, streak: 0, hp: qs.length, speed: { ms: 0, since: 0, pen: 0 } };
+    SFX.whistle(); showTimer(true); drawTimer(); question();
+  };
+}
+function finishSpeedrun() {
+  tickStop(); showTimer(false);
+  const exact = speedTotal(), secs = Math.round(exact), pen = run.speed.pen, isPB = !state.pb || secs < state.pb;
+  if (isPB) state.pb = secs; save(); progress(1); setScene("finale"); SFX.win(); confetti(80);
+  const ok = secs >= 60 && secs <= 7200;
+  $("panel").innerHTML = `<h2 style="font-size:30px; text-align:center">Speedrun complete!</h2><div class="bigtime">${clockTxt(exact)}</div>
+    <p class="context" style="text-align:center"><b>${accuracy(pen)}% accuracy</b>, ${pen} wrong answer${pen === 1 ? "" : "s"} (+${pen * PENALTY_S} seconds). ${isPB ? "New personal best!" : "Personal best: " + wholeTxt(state.pb)}</p>
+    ${ok ? `<div class="namefield"><label for="lbname"><b>Name for the leaderboard (first name or nickname)</b></label><input id="lbname" maxlength="20" autocomplete="off" value="${esc(state.name)}"></div><div class="row"><button class="btn" id="send">Add my time</button></div>` : `<p class="status">This time can’t go on the class leaderboard.</p>`}
+    <div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn ghost" id="again">Try again</button></div>`;
+  $("map").onclick = mapScreen; $("again").onclick = speedrunIntro;
+  if ($("send")) {
+    $("send").onclick = async () => {
+      const player = $("lbname").value.trim().slice(0, 20); if (!player) { $("lbname").focus(); return; }
+      $("send").disabled = true; $("send").textContent = "Sending…";
+      try { await sendRun({ player, hero: state.hero, time_seconds: secs, wrong_answers: pen }); $("send").textContent = "Time added ✓"; $("lbname").disabled = true; fillBoard($("board"), { player, time_seconds: secs }); }
+      catch (e) { $("send").disabled = false; $("send").textContent = "Try again"; $("board").innerHTML = `<p class="status">Your time didn’t send. Check the internet connection and press Try again.</p>`; }
+    };
+  } else fillBoard($("board"));
+}
+
+hud();
+titleScreen();
+</script>
+</body>
+</html>
