@@ -118,6 +118,18 @@ button:focus-visible, input:focus-visible{outline:4px solid var(--brass); outlin
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cert h2{color:var(--brass)}}
 .cert .who{font-family:"Fredoka",Arial,sans-serif; font-size:36px; margin:10px 0}
 .pop{animation:pop .45s ease-out}
+.pill[hidden]{display:none}
+.timer{font-variant-numeric:tabular-nums}
+.penalty{color:#FFB3C1; font-weight:800; margin-left:4px}
+.board{width:100%; border-collapse:collapse; margin-top:10px; font-size:18px}
+.board th{text-align:left; color:var(--muted); font-size:15px; padding:6px 8px; border-bottom:2px solid var(--line)}
+.board td{padding:8px; border-bottom:1px solid var(--line)}
+.board td.n{font-family:"Fredoka",Arial,sans-serif; font-weight:700; width:44px}
+.board tr.me td{background:var(--mint-soft); font-weight:800}
+.bigtime{font-family:"Fredoka",Arial,sans-serif; font-size:56px; font-weight:700; text-align:center; margin:6px 0; font-variant-numeric:tabular-nums}
+.rules{margin:10px 0 0; padding-left:22px}
+.rules li{margin:4px 0}
+.status{color:var(--muted); font-size:16px; margin-top:8px}
 @keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 @media (max-width:560px){
   body{font-size:17px}
@@ -137,6 +149,7 @@ button:focus-visible, input:focus-visible{outline:4px solid var(--brass); outlin
     <div class="pills">
       <div class="pill" title="Golden cogs"><span id="cogIcon"></span><span id="cogs">0</span></div>
       <div class="pill" title="First-try stars"><span id="starIcon"></span><span id="stars">0</span></div>
+      <div class="pill timer" id="timerPill" title="Speedrun time" hidden><span aria-hidden="true">⏱</span><span id="timer">0:00.0</span><span class="penalty" id="pen"></span></div>
     </div>
   </div>
   <div class="progress" id="progressBar" hidden><i id="progressFill" style="width:0%"></i></div>
@@ -485,7 +498,7 @@ function titleScreen() {
 }
 
 function mapScreen() {
-  progress(null); setScene("town", state.done.length === CHAPTERS.length);
+  showTimer(false); progress(null); setScene("town", state.done.length === CHAPTERS.length);
   const items = CHAPTERS.map((c, i) => {
     const unlocked = i === 0 || state.done.includes(CHAPTERS[i - 1].id), done = state.done.includes(c.id);
     return `<button class="chapter ${unlocked ? "" : "locked"}" data-ch="${i}" ${unlocked ? "" : 'aria-disabled="true"'}>
@@ -493,10 +506,15 @@ function mapScreen() {
       ${done ? `<span class="tick">Done ✓</span>` : ""}</button>`;
   }).join("");
   $("panel").innerHTML = `<h2 style="font-size:28px; margin-bottom:12px">Hi ${esc(nameOf())}! Choose a chapter</h2><div class="map">${items}</div>
-    <div class="row"><button class="btn ghost small" id="back">Change name</button>${state.done.length === CHAPTERS.length ? `<button class="btn small" id="cert">See my certificate</button>` : ""}</div>`;
+    <div class="row"><button class="btn ghost small" id="back">Change name</button>${state.done.length === CHAPTERS.length ? `<button class="btn small" id="cert">See my certificate</button>` : ""}</div>
+    <h3 style="font-size:22px; margin-top:18px">Speedrun challenge</h3>
+    <p class="context" style="margin:4px 0 0">${state.done.length === CHAPTERS.length ? "Race through every chapter and get on the class leaderboard." : "Finish the whole story to unlock speedrun mode."}</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn small" id="speed" ${state.done.length === CHAPTERS.length ? "" : "disabled style=\"opacity:.5;cursor:not-allowed\""}>⏱ Speedrun</button><button class="btn ghost small" id="lb">Class leaderboard</button></div>`;
   document.querySelectorAll(".chapter").forEach((b) => b.onclick = () => { if (b.classList.contains("locked")) return; startChapter(+b.dataset.ch); });
   $("back").onclick = titleScreen;
   if ($("cert")) $("cert").onclick = certificate;
+  $("speed").onclick = () => { if (state.done.length === CHAPTERS.length) speedrunIntro(); };
+  $("lb").onclick = leaderboardScreen;
 }
 
 function dialogue(lines, sceneKey, sceneArg, onDone) {
@@ -514,19 +532,111 @@ function dialogue(lines, sceneKey, sceneArg, onDone) {
 }
 
 let run = null;
+
+/* ---------- speedrun + class leaderboard ---------- */
+const SUPABASE_URL = "https://awxmgiindzlwtgoxtxdt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
+const PENALTY_S = 10;
+let runItems = 0;
+function itemCount() { if (!runItems) runItems = CHAPTERS.reduce((n, c) => n + c.make().reduce((k, q) => k + (q.type === "steps" ? q.steps.length : 1), 0), 0); return runItems; }
+const accuracy = (wrong) => Math.round((itemCount() / (itemCount() + wrong)) * 100);
+const clockTxt = (secs) => { const m = Math.floor(secs / 60), s = secs - m * 60; return m + ":" + (s < 10 ? "0" : "") + s.toFixed(1); };
+const wholeTxt = (secs) => { const m = Math.floor(secs / 60), s = secs % 60; return m + ":" + String(s).padStart(2, "0"); };
+let timerLoop = null;
+function speedTotal() { const sp = run && run.speed; if (!sp) return 0; const live = sp.since ? performance.now() - sp.since : 0; return (sp.ms + live) / 1000 + sp.pen * PENALTY_S; }
+function tickStart() { if (!run || !run.speed || run.speed.since) return; run.speed.since = performance.now(); }
+function tickStop() { if (!run || !run.speed || !run.speed.since) return; run.speed.ms += performance.now() - run.speed.since; run.speed.since = 0; drawTimer(); }
+function drawTimer() { if (!run || !run.speed) return; $("timer").textContent = clockTxt(speedTotal()); $("pen").textContent = run.speed.pen ? "+" + run.speed.pen * PENALTY_S + "s" : ""; }
+function showTimer(on) { $("timerPill").hidden = !on; clearInterval(timerLoop); if (on) timerLoop = setInterval(drawTimer, 100); }
+function penalise() { if (!run || !run.speed) return ""; run.speed.pen++; drawTimer(); return ` <b>+${PENALTY_S} seconds!</b>`; }
+
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, { ...opts, headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", ...(opts.headers || {}) } });
+  if (!res.ok) throw new Error("Leaderboard error " + res.status);
+  return res.status === 204 || res.status === 201 ? null : res.json();
+}
+const topTen = () => sbFetch("speedruns?select=player,time_seconds,wrong_answers,created_at&order=time_seconds.asc,created_at.asc&limit=10");
+const sendRun = (player, time_seconds, wrong_answers) => sbFetch("speedruns", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ player, time_seconds, wrong_answers }) });
+
+function boardHTML(rows, mine) {
+  if (!rows.length) return `<p class="status">No times yet. Be the first speedrunner!</p>`;
+  let marked = false;
+  return `<table class="board"><thead><tr><th>#</th><th>Detective</th><th>Time</th><th>Accuracy</th></tr></thead><tbody>${rows.map((r, i) => {
+    const me = !marked && mine && r.player === mine.player && r.time_seconds === mine.time_seconds; if (me) marked = true;
+    return `<tr class="${me ? "me" : ""}"><td class="n">${i + 1}</td><td>${esc(r.player)}</td><td>${wholeTxt(r.time_seconds)}</td><td>${accuracy(r.wrong_answers)}%</td></tr>`;
+  }).join("")}</tbody></table>`;
+}
+async function fillBoard(el, mine) {
+  el.innerHTML = `<p class="status">Loading the class leaderboard…</p>`;
+  try { el.innerHTML = boardHTML(await topTen(), mine); }
+  catch (e) { el.innerHTML = `<p class="status">The class leaderboard didn’t load. Check the internet connection and try again.</p>`; }
+}
+
+function leaderboardScreen() {
+  progress(null); setScene("tower");
+  $("panel").innerHTML = `<h2 style="font-size:28px">Class speedrun leaderboard</h2>
+    ${state.pb ? `<p class="context">Your personal best on this device: <b>${wholeTxt(state.pb)}</b></p>` : ""}
+    <div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button></div>`;
+  $("map").onclick = mapScreen; fillBoard($("board"));
+}
+
+function speedrunIntro() {
+  progress(null); setScene("tower");
+  const total = CHAPTERS.reduce((n, c) => n + c.make().length, 0);
+  $("panel").innerHTML = `<div class="dialog"><div class="portrait">${PORTRAITS.Grimsby}</div><div>
+    <div class="speaker">Grimsby</div><p class="line">Caw! Back for more? Answer all my riddles as fast as you can!</p></div></div>
+    <ul class="rules"><li>${total} questions from every chapter, one after another.</li>
+    <li>The clock only runs while you’re answering.</li><li>Every wrong answer adds ${PENALTY_S} seconds, so don’t guess!</li></ul>
+    <div class="row"><button class="btn ghost" id="map">Back</button><button class="btn" id="go">Start the clock</button></div>`;
+  $("map").onclick = mapScreen;
+  $("go").onclick = startSpeedrun;
+}
+
+function startSpeedrun() {
+  const qs = [], chs = [];
+  CHAPTERS.forEach((c, i) => c.make().forEach((q) => { qs.push(q); chs.push(i); }));
+  run = { idx: 0, qs, chs, q: 0, hp: qs.length, speed: { ms: 0, since: 0, pen: 0 } };
+  showTimer(true); drawTimer(); question();
+}
+
+function finishSpeedrun() {
+  tickStop(); showTimer(false);
+  const exact = speedTotal(), secs = Math.round(exact), pen = run.speed.pen;
+  const isPB = !state.pb || secs < state.pb; if (isPB) state.pb = secs; save();
+  progress(1); setScene("town", true);
+  const tooFast = secs < 60, tooSlow = secs > 7200;
+  $("panel").innerHTML = `<h2 style="font-size:28px; text-align:center">Speedrun complete!</h2>
+    <div class="bigtime">${clockTxt(exact)}</div>
+    <p class="context" style="text-align:center"><b>${accuracy(pen)}% accuracy</b> · ${pen} wrong answer${pen === 1 ? "" : "s"} (+${pen * PENALTY_S} seconds)${isPB ? " · New personal best!" : " · Personal best: " + wholeTxt(state.pb)}</p>
+    ${tooFast || tooSlow ? `<p class="status">This time can’t go on the class leaderboard.</p>` : `
+    <div class="namefield"><label for="lbname"><b>Name for the leaderboard (first name or nickname)</b></label>
+      <input id="lbname" maxlength="20" autocomplete="off" value="${esc(state.name)}"></div>
+    <div class="row"><button class="btn" id="send">Add my time</button></div>`}
+    <div id="board"></div>
+    <div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn ghost" id="again">Try again</button></div>`;
+  $("map").onclick = mapScreen; $("again").onclick = speedrunIntro;
+  if ($("send")) { $("send").onclick = async () => {
+    const player = $("lbname").value.trim().slice(0, 20);
+    if (!player) { $("lbname").focus(); return; }
+    $("send").disabled = true; $("send").textContent = "Sending…";
+    try { await sendRun(player, secs, pen); $("send").textContent = "Time added ✓"; $("lbname").disabled = true; fillBoard($("board"), { player, time_seconds: secs }); }
+    catch (e) { $("send").disabled = false; $("send").textContent = "Try again"; $("board").innerHTML = `<p class="status">Your time didn’t send. Check the internet connection and press Try again.</p>`; }
+  }; } else fillBoard($("board"));
+}
 function startChapter(idx) {
   const ch = CHAPTERS[idx];
   dialogue(ch.intro, ch.scene, false, () => { run = { idx, qs: ch.make(), q: 0, hp: 0 }; run.hp = run.qs.length; question(); });
 }
 
 function bossBar() {
-  if (!CHAPTERS[run.idx].boss) return "";
+  if (run.speed || !CHAPTERS[run.idx].boss) return "";
   return `<div class="boss">${PORTRAITS.Grimsby}<div style="flex:1"><b>Grimsby’s riddle power</b><div class="hp"><i style="width:${(run.hp / run.qs.length) * 100}%"></i></div></div></div>`;
 }
 const TAUNTS = ["Caw-caw! Wrong! Try again!", "Ha! Not quite, little detective!", "Ooh, so close. But no!", "My riddles are too tricky for you! …Or are they?"];
 const OUCH = ["Caw! Lucky guess!", "Squawk! How did you know?", "Ruffled my feathers, that did!", "Grr… my riddles are running out!"];
 
 function question() {
+  if (run.chs) run.idx = run.chs[run.q];
   const ch = CHAPTERS[run.idx], q = run.qs[run.q];
   progress(run.q / run.qs.length);
   setScene(ch.scene, false);
@@ -534,11 +644,12 @@ function question() {
   if (q.type === "mc") renderMC(q);
   else if (q.type === "steps") renderSteps(q);
   else renderSet(q);
+  tickStart();
 }
 
 function header(q) {
   const ch = CHAPTERS[run.idx];
-  return `${bossBar()}<p class="context">${ch.title}: question ${run.q + 1} of ${run.qs.length}</p>
+  return `${bossBar()}<p class="context">${run.speed ? "Speedrun" : ch.title}: question ${run.q + 1} of ${run.qs.length}</p>
     <p class="prompt">${esc(q.prompt)}</p>${q.context ? `<p class="context">${esc(q.context)}</p>` : ""}`;
 }
 
@@ -551,7 +662,7 @@ function wireOptions(answer, hint, onRight) {
     } else {
       b.classList.add("wrong"); b.disabled = true; run.first = false;
       const boss = CHAPTERS[run.idx].boss;
-      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite."}</b> ${esc(hint)}`);
+      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite."}</b>${penalise()} ${esc(hint)}`);
     }
   });
 }
@@ -559,6 +670,7 @@ function wireOptions(answer, hint, onRight) {
 function feedback(kind, html) { const f = $("fb"); f.className = "feedback show " + kind; f.innerHTML = html; }
 
 function correct(explain) {
+  tickStop();
   state.cogs++; if (run.first) state.stars++; save(); hud(true);
   const boss = CHAPTERS[run.idx].boss;
   if (boss) run.hp--;
@@ -567,7 +679,7 @@ function correct(explain) {
   const row = document.createElement("div"); row.className = "row";
   row.innerHTML = `<button class="btn" id="cont">${run.q < run.qs.length - 1 ? "Next question" : "Finish chapter"}</button>`;
   $("panel").appendChild(row); $("cont").focus({ preventScroll: true });
-  $("cont").onclick = () => { run.q++; run.q < run.qs.length ? question() : finishChapter(); };
+  $("cont").onclick = () => { run.q++; run.q < run.qs.length ? question() : (run.speed ? finishSpeedrun() : finishChapter()); };
 }
 
 function renderMC(q) {
@@ -584,7 +696,8 @@ function renderSteps(q) {
   wireOptions(s.answer, s.hint, () => {
     if (k < q.steps.length - 1) {
       feedback("good", `<b>Yes!</b> ${esc(s.answer)}. On to the next jump…`);
-      setTimeout(() => { run.step++; renderSteps(q); }, 1100);
+      tickStop();
+      setTimeout(() => { run.step++; renderSteps(q); tickStart(); }, run.speed ? 500 : 1100);
     } else {
       document.querySelector(".nl").innerHTML = q.line(q.steps.length);
       correct(q.explain);
@@ -631,7 +744,7 @@ function renderSet(q) {
       const boss = CHAPTERS[run.idx].boss, tm = q.target % 60, cm = t % 60;
       const tip = hourOf(t) !== hourOf(q.target) && cm === tm ? "The minutes are right, but check the hour." :
         cm !== tm ? "Check the minute hand. Count in 5s to the big number, then in 1s on the little marks." : "Nearly! Check the hour hand.";
-      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite yet."}</b> Your clock says ${fmt(t)}. ${tip}`);
+      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite yet."}</b>${penalise()} Your clock says ${fmt(t)}. ${tip}`);
     }
   };
 }
