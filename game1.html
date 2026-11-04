@@ -534,6 +534,27 @@ let run = null;
 /* ---------- speedrun + class leaderboard ---------- */
 const SUPABASE_URL = "https://awxmgiindzlwtgoxtxdt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
+
+/* ---------- answer log for the teacher dashboard (write-only for players) ---------- */
+function skillOf(q) {
+  const p = q.prompt || "";
+  if (q.type === "set") return /when it started/i.test(p) ? "Start times" : /finish time|opening time/i.test(p) ? "Finish times" : "Setting clocks";
+  if (/which words/i.test(p)) return "Past and to";
+  if (/what time does this clock show|which clock shows/i.test(p)) return "Reading clocks";
+  if (/how long/i.test(p)) return q.visual && q.visual.includes('class="tt"') ? "Timetables" : "Elapsed time";
+  if (/what time will it/i.test(p)) return "Finish times";
+  if (/what time did it start/i.test(p)) return "Start times";
+  return "Other";
+}
+function logAnswer(given, ok) {
+  try {
+    const q = run.qs[run.q], st = q.type === "steps" ? q.steps[run.step] : null;
+    const row = { game: GAME_NO, chapter: CHAPTERS[run.idx].id, player: ((state.name || "").trim() || "(no name)").slice(0, 20), skill: skillOf(q),
+      question: (q.prompt + (q.context ? " " + q.context : "") + (st ? " | Step " + (run.step + 1) + ": " + st.q : "")).slice(0, 300),
+      correct_answer: String(st ? st.answer : q.type === "set" ? fmt(q.target) : q.answer).slice(0, 60), given_answer: String(given).slice(0, 60), is_correct: !!ok };
+    fetch(SUPABASE_URL + "/rest/v1/answer_log", { method: "POST", keepalive: true, headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(row) }).catch(() => {});
+  } catch (e) {}
+}
 const PENALTY_S = 10;
 let runItems = 0;
 function itemCount() { if (!runItems) runItems = CHAPTERS.reduce((n, c) => n + c.make().reduce((k, q) => k + (q.type === "steps" ? q.steps.length : 1), 0), 0); return runItems; }
@@ -686,6 +707,7 @@ function optionsHTML(opts) { return `<div class="options">${opts.map((o) => `<bu
 
 function wireOptions(answer, hint, onRight) {
   document.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+    logAnswer(b.dataset.v, b.dataset.v === answer);
     if (b.dataset.v === answer) {
       b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); onRight();
     } else {
@@ -764,6 +786,7 @@ function renderSet(q) {
   }
   bindDrag();
   $("check").onclick = () => {
+    logAnswer(fmt(t), norm(t) === norm(q.target));
     if (norm(t) === norm(q.target)) {
       $("check").remove(); document.querySelectorAll("[data-d]").forEach((b) => b.disabled = true);
       $("setClock").querySelector("svg").onpointerdown = null;
