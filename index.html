@@ -39,6 +39,22 @@ h1{font-family:"Lilita One","Arial Black",Arial,sans-serif; font-weight:400; col
 .puff{transform-box:fill-box; transform-origin:center; animation:puff 2.4s ease-out infinite}
 @keyframes puff{0%{transform:translate(0,0) scale(.4); opacity:.95}100%{transform:translate(-30px,-50px) scale(1.6); opacity:0}}
 @media (max-width:640px){.games{grid-template-columns:1fr}}
+.boards{margin-top:34px}
+.boards h2{font-family:"Lilita One","Arial Black",Arial,sans-serif; font-weight:400; color:var(--title); font-size:34px; margin:0 0 14px; text-align:center}
+.bgrid{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+.bcard{background:var(--card); color:var(--ink); border-radius:24px; padding:18px 18px 20px; box-shadow:0 14px 34px rgba(0,0,0,.4)}
+.bcard h3{font-family:"Lilita One",Arial,sans-serif; font-weight:400; font-size:24px; margin:0 0 10px}
+.bcard label{font-weight:900; font-size:15px; color:var(--muted); display:block; margin-bottom:4px}
+.bcard select{font:inherit; font-weight:800; font-size:17px; width:100%; padding:8px 10px; border-radius:12px; border:3px solid #D3CBEA; background:var(--card); color:var(--ink)}
+.board{width:100%; border-collapse:collapse; margin-top:10px; font-size:17px}
+.board th{text-align:left; color:var(--muted); font-size:14px; padding:6px 8px; border-bottom:2px solid #D3CBEA}
+.board td{padding:7px 8px; border-bottom:1px solid #D3CBEA}
+.board td.n{font-family:"Lilita One",Arial,sans-serif; width:36px}
+.board tr:first-child td{font-weight:900}
+.status{color:var(--muted); font-size:16px; margin:12px 0 0}
+select:focus-visible{outline:4px solid var(--brass); outline-offset:2px}
+@media (max-width:640px){.bgrid{grid-template-columns:1fr}}
+
 @media (prefers-reduced-motion: reduce){*{animation:none!important; transition:none!important}}
 </style>
 </head>
@@ -88,6 +104,46 @@ h1{font-family:"Lilita One","Arial Black",Arial,sans-serif; font-weight:400; col
         <span class="play">Play</span></div>
     </a>
   </div>
+  <section class="boards" aria-labelledby="lbh">
+    <h2 id="lbh">Class leaderboards</h2>
+    <div class="bgrid">
+      <div class="bcard"><h3>The Clocktower of Tickwick</h3><label for="sel1">Show</label>
+        <select id="sel1"><option value="journey">Whole adventure</option><option value="town">1. The Frozen Town</option><option value="market">2. The Market of Lost Minutes</option><option value="river">3. The Tick River Ferry</option><option value="tower">4. Grimsby’s Tower</option></select>
+        <div id="b1"></div></div>
+      <div class="bcard"><h3>The Runaway Time Train</h3><label for="sel2">Show</label>
+        <select id="sel2"><option value="journey">Whole adventure</option><option value="station">1. All Aboard!</option><option value="junction">2. Timetable Trouble</option><option value="route">3. Volcano or Frosty</option><option value="bridge">4. The Lightning Bridge</option><option value="castle">5. Count Cuckoo’s Castle</option></select>
+        <div id="b2"></div></div>
+    </div>
+  </section>
 </div>
+<script>
+const SUPABASE_URL = "https://awxmgiindzlwtgoxtxdt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
+const JOURNEY = { 1: { table: "speedruns", items: 27 }, 2: { table: "train_speedruns", items: 30 } };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const mmss = (t) => Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+async function get(path) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, { headers: { apikey: SUPABASE_KEY } });
+  if (!res.ok) throw new Error(res.status); return res.json();
+}
+function best(rows) { const seen = new Set(), out = []; for (const r of rows) { const k = String(r.player).trim().toLowerCase(); if (seen.has(k)) continue; seen.add(k); out.push(r); if (out.length >= 10) break; } return out; }
+async function show(game, which) {
+  const el = document.getElementById("b" + game);
+  el.innerHTML = `<p class="status">Loading…</p>`;
+  try {
+    let rows;
+    if (which === "journey") {
+      const j = JOURNEY[game];
+      rows = (await get(j.table + "?select=player,time_seconds,wrong_answers&order=time_seconds.asc,created_at.asc&limit=200")).map((r) => ({ ...r, accuracy: Math.round(j.items / (j.items + r.wrong_answers) * 100) }));
+    } else {
+      rows = await get("chapter_times?select=player,time_seconds,accuracy&game=eq." + game + "&chapter=eq." + which + "&order=time_seconds.asc,created_at.asc&limit=200");
+    }
+    rows = best(rows);
+    el.innerHTML = rows.length ? `<div style="overflow-x:auto"><table class="board"><thead><tr><th>#</th><th>Name</th><th>Time</th><th>Accuracy</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td class="n">${i + 1}</td><td>${esc(r.player)}</td><td>${mmss(r.time_seconds)}</td><td>${r.accuracy}%</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="status">No times yet. Play to be the first!</p>`;
+  } catch (e) { el.innerHTML = `<p class="status">The leaderboard didn’t load. Check the internet connection and refresh the page.</p>`; }
+}
+[1, 2].forEach((g) => { const sel = document.getElementById("sel" + g); sel.onchange = () => show(g, sel.value); show(g, "journey"); });
+</script>
 </body>
 </html>

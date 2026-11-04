@@ -663,6 +663,7 @@ function titleScreen() {
     return `<button class="av ${locked ? "locked" : ""}" data-hero="${k}" aria-pressed="${state.hero === k}" aria-label="${h.name}${locked ? ", unlocks at " + h.need + " cogs" : ""}" ${locked ? 'aria-disabled="true"' : ""}>${heroSVG(k)}${locked ? `<span class="lock">🔒 ${h.need} cogs</span>` : ""}</button>`; }).join("");
   $("panel").innerHTML = `<h1 style="font-size:40px; color:var(--title)">The Runaway Time Train</h1>
     <p class="line">Count Cuckoo has stolen Tickwick’s Time Train. Pick your hero and chase him down!</p>
+    <p class="context" style="margin-top:6px">⏱ Your time starts at the first stop and stops when you finish the journey. Wrong answers add 10 seconds.</p>
     <p style="font-weight:900; margin:14px 0 0">Choose your hero</p><div class="avatars">${avs}</div>
     <div class="namefield"><label for="nm"><b>What’s your conductor name?</b></label><input id="nm" maxlength="20" autocomplete="off" value="${esc(state.name)}" placeholder="Type your first name"></div>
     <div class="row">${state.done.length ? `<button class="btn ghost" id="reset">Start a new journey</button>` : ""}<button class="btn" id="go">${state.done.length ? "Keep playing" : "All aboard!"}</button></div>`;
@@ -673,11 +674,11 @@ function titleScreen() {
   });
   $("go").onclick = () => { state.name = $("nm").value.trim().slice(0, 20); save(); SFX.whistle(); mapScreen(); };
   $("nm").onkeydown = (e) => { if (e.key === "Enter") $("go").click(); };
-  if ($("reset")) $("reset").onclick = () => { state.done = []; state.route = ""; save(); mapScreen(); };
+  if ($("reset")) $("reset").onclick = () => { state.done = []; state.route = ""; jClear(); mapScreen(); };
 }
 
 function mapScreen() {
-  showTimer(false); progress(null); run = null; hud(); setScene(state.done.includes("castle") ? "finale" : "station");
+  cRun = null; showTimer(false); progress(null); run = null; hud(); setScene(state.done.includes("castle") ? "finale" : "station");
   const tickets = ORDER.map((key, i) => {
     const unlocked = i === 0 || keyDone(ORDER[i - 1]), done = keyDone(key);
     const c = key === "route" ? (state.route ? CH[state.route] : { title: "The Split Track", blurb: "Choose: Volcano Valley or Frosty Peaks" }) : CH[key];
@@ -687,17 +688,14 @@ function mapScreen() {
   $("panel").innerHTML = `<div class="dialog" style="align-items:center"><div class="portrait" style="flex-basis:64px; width:64px; height:64px">${heroSVG(state.hero)}</div><h2 style="font-size:28px">Your journey, ${esc(nameOf())}</h2></div>
     <div class="tickets" style="margin-top:14px">${tickets}</div>
     <div class="row"><a class="btn ghost small" href="index.html" style="text-decoration:none">All games</a><button class="btn ghost small" id="back">Change hero</button>${all ? `<button class="btn small" id="cert">See my golden ticket</button>` : ""}</div>
-    <h3 style="font-size:24px; margin-top:16px">Speedrun challenge</h3>
-    <p class="context" style="margin:4px 0 0">Race the whole line and get on the class leaderboard.</p>
-    <div class="row" style="justify-content:flex-start"><button class="btn small" id="speed">⏱ Speedrun</button><button class="btn ghost small" id="lb">Class leaderboard</button></div>`;
+    <div class="row" style="justify-content:flex-start; margin-top:10px"><button class="btn ghost small" id="lb">⏱ Class leaderboard</button></div>`;
   document.querySelectorAll(".ticket").forEach((b) => b.onclick = () => {
     if (b.classList.contains("locked")) return; SFX.click();
     const key = b.dataset.key; key === "route" ? routeChoice(() => startChapter(state.route)) : startChapter(key);
   });
   $("back").onclick = titleScreen;
   if ($("cert")) $("cert").onclick = certificate;
-  $("speed").onclick = speedrunIntro;
-  $("lb").onclick = leaderboardScreen;
+  $("lb").onclick = () => leaderboardScreen();
 }
 
 function routeChoice(next) {
@@ -724,6 +722,8 @@ function dialogue(lines, sceneKey, sceneArg, onDone) {
 
 function startChapter(key) {
   const ch = CH[key];
+  cStart(ch.route ? "route" : key);
+  if (key === "station" && !state.done.length && !journeyActive()) jStart();
   dialogue(ch.intro, ch.scene, ch.chase ? 0 : (ch.boss ? 1 : undefined), () => { run = { key, qs: ch.make(), q: 0, streak: 0 }; run.hp = run.qs.length; hud(); question(); });
 }
 
@@ -786,7 +786,7 @@ function correct(explain) {
   const row = document.createElement("div"); row.className = "row";
   row.innerHTML = `<button class="btn" id="cont">${run.q < run.qs.length - 1 ? "Next" : run.speed ? "Finish" : "Finish this stop"}</button>`;
   $("panel").appendChild(row); $("cont").focus({ preventScroll: true });
-  $("cont").onclick = () => { SFX.click(); run.q++; run.q < run.qs.length ? question() : (run.speed ? finishSpeedrun() : finishChapter()); };
+  $("cont").onclick = () => { SFX.click(); run.q++; run.q < run.qs.length ? question() : finishChapter(); };
 }
 
 function renderMC(q) {
@@ -840,11 +840,11 @@ function finishChapter() {
   if (!state.done.includes(doneKey)) state.done.push(doneKey);
   save(); progress(1); SFX.whistle(); confetti(30);
   const last = key === "castle";
-  dialogue(ch.outro, last ? "finale" : ch.scene, ch.chase ? 1 : ch.boss ? 0 : undefined, () => {
-    if (last) { SFX.win(); confetti(90); certificate(); }
+  dialogue(ch.outro, last ? "finale" : ch.scene, ch.chase ? 1 : ch.boss ? 0 : undefined, () => chapterDone(doneKey, () => {
+    if (last) { SFX.win(); confetti(90); finishJourney(); }
     else if (key === "junction") routeChoice(() => startChapter(state.route));
     else mapScreen();
-  });
+  }));
 }
 
 function certificate() {
@@ -852,10 +852,10 @@ function certificate() {
   $("panel").innerHTML = `<div class="ticketcert">${heroSVG(state.hero, "hero")}<p style="margin:10px 0 0; font-weight:900">This golden ticket is awarded to</p>
     <div class="who">${esc(nameOf())}</div><h2>Chief Conductor of Tickwick</h2>
     <p style="font-size:19px; margin:10px auto 0; max-width:44ch">for chasing down Count Cuckoo and bringing the Time Train home.</p>
-    <p style="font-weight:900; font-size:20px; margin-top:12px">${ICON_COG.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.cogs} cogs &nbsp; ${ICON_STAR.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.stars} stars</p></div>
+    <p style="font-weight:900; font-size:20px; margin-top:12px">${ICON_COG.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.cogs} cogs &nbsp; ${ICON_STAR.replace("<svg", '<svg style="width:28px;height:28px;vertical-align:middle"')} ${state.stars} stars</p>${state.journey && state.journey.finished ? `<p style="font-weight:900; font-size:20px; margin:6px 0 0">⏱ Journey time: ${wholeTxt(state.journey.secs)}</p>` : ""}</div>
     <div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn" id="again">New journey</button></div>`;
   $("map").onclick = mapScreen;
-  $("again").onclick = () => { state.done = []; state.route = ""; save(); mapScreen(); };
+  $("again").onclick = () => { state.done = []; state.route = ""; jClear(); mapScreen(); };
 }
 
 /* ================= speedrun + class leaderboard ================= */
@@ -869,62 +869,104 @@ function itemCount() { if (!runItems) runItems = SPEED_ORDER.reduce((n, k) => n 
 const accuracy = (wrong) => Math.round(itemCount() / (itemCount() + wrong) * 100);
 const clockTxt = (secs) => { const m = Math.floor(secs / 60), s = secs - m * 60; return m + ":" + (s < 10 ? "0" : "") + s.toFixed(1); };
 const wholeTxt = (secs) => Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
-let timerLoop = null;
-function speedTotal() { const sp = run && run.speed; if (!sp) return 0; return (sp.ms + (sp.since ? performance.now() - sp.since : 0)) / 1000 + sp.pen * PENALTY_S; }
-function tickStart() { if (run && run.speed && !run.speed.since) run.speed.since = performance.now(); }
-function tickStop() { if (run && run.speed && run.speed.since) { run.speed.ms += performance.now() - run.speed.since; run.speed.since = 0; drawTimer(); } }
-function drawTimer() { if (!run || !run.speed) return; $("timer").textContent = clockTxt(speedTotal()); $("pen").textContent = run.speed.pen ? "+" + run.speed.pen * PENALTY_S + "s" : ""; }
-function showTimer(on) { $("timerPill").hidden = !on; clearInterval(timerLoop); if (on) timerLoop = setInterval(drawTimer, 100); }
-function penalise() { if (!run || !run.speed) return ""; run.speed.pen++; drawTimer(); return ` <b>+${PENALTY_S} seconds!</b>`; }
+let jSince = 0, timerLoop = null;
+const journeyActive = () => !!(state.journey && !state.journey.finished);
+function jStart() { state.journey = { ms: 0, pen: 0, finished: false }; jSince = 0; save(); jResume(); }
+function jResume() { if (journeyActive() && !jSince && document.visibilityState !== "hidden") jSince = performance.now(); showTimer(); }
+function jPause() { if (jSince && state.journey) { state.journey.ms += performance.now() - jSince; jSince = 0; save(); } }
+function jClear() { jSince = 0; state.journey = null; save(); showTimer(); }
+function jTotal() { const j = state.journey; if (!j) return 0; return (j.ms + (jSince ? performance.now() - jSince : 0)) / 1000 + j.pen * PENALTY_S; }
+function drawTimer() { const j = journeyActive(); if (!j && !cRun) return; $("timer").textContent = clockTxt(j ? jTotal() : cTotal()); const p = j ? state.journey.pen : cRun.pen; $("pen").textContent = p ? "+" + p * PENALTY_S + "s" : ""; }
+function showTimer() { const on = journeyActive() || !!cRun; $("timerPill").hidden = !on; clearInterval(timerLoop); if (on) { drawTimer(); timerLoop = setInterval(drawTimer, 100); } }
+function penalise() { const j = journeyActive(); if (!j && !cRun) return ""; if (j) { state.journey.pen++; save(); } if (cRun) cRun.pen++; drawTimer(); return ` <b>+${PENALTY_S} seconds!</b>`; }
+function tickStart() {}
+function tickStop() {}
+document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" ? jPause() : jResume());
+window.addEventListener("pagehide", jPause);
+setInterval(() => { if (jSince) { jPause(); jResume(); } }, 5000);
 
 async function sb(path, opts = {}) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, { ...opts, headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", ...(opts.headers || {}) } });
   if (!res.ok) throw new Error("Leaderboard error " + res.status);
   return res.status === 201 || res.status === 204 ? null : res.json();
 }
-const topTen = () => sb(TABLE + "?select=player,hero,time_seconds,wrong_answers,created_at&order=time_seconds.asc,created_at.asc&limit=10");
+const topTen = () => sb(TABLE + "?select=player,hero,time_seconds,wrong_answers,created_at&order=time_seconds.asc,created_at.asc&limit=200");
 const sendRun = (row) => sb(TABLE, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });
 function boardHTML(rows, mine) {
-  if (!rows.length) return `<p class="status">No times yet. Be the first speedrunner!</p>`;
+  if (!rows.length) return `<p class="status">No times yet. Finish the journey to be the first!</p>`;
   let marked = false;
   return `<div style="overflow-x:auto"><table class="board"><thead><tr><th>#</th><th>Conductor</th><th>Time</th><th>Accuracy</th></tr></thead><tbody>${rows.map((r, i) => {
     const me = !marked && mine && r.player === mine.player && r.time_seconds === mine.time_seconds; if (me) marked = true;
     const face = HEROES[r.hero] ? `<span style="display:inline-block; width:28px; height:28px; vertical-align:middle; margin-right:6px; border-radius:8px; overflow:hidden">${heroSVG(r.hero)}</span>` : "";
-    return `<tr class="${me ? "me" : ""}"><td class="n">${i + 1}</td><td>${face}${esc(r.player)}</td><td>${wholeTxt(r.time_seconds)}</td><td>${accuracy(r.wrong_answers)}%</td></tr>`;
+    return `<tr class="${me ? "me" : ""}"><td class="n">${i + 1}</td><td>${face}${esc(r.player)}</td><td>${wholeTxt(r.time_seconds)}</td><td>${r.accuracy ?? accuracy(r.wrong_answers)}%</td></tr>`;
   }).join("")}</tbody></table></div>`;
 }
 async function fillBoard(el, mine) {
   el.innerHTML = `<p class="status">Loading the class leaderboard…</p>`;
-  try { el.innerHTML = boardHTML(await topTen(), mine); } catch (e) { el.innerHTML = `<p class="status">The class leaderboard didn’t load. Check the internet connection and try again.</p>`; }
+  try { el.innerHTML = boardHTML(bestPerPlayer(await topTen()), mine); } catch (e) { el.innerHTML = `<p class="status">The class leaderboard didn’t load. Check the internet connection and try again.</p>`; }
 }
-function leaderboardScreen() {
+
+/* ---------- chapter times ---------- */
+const GAME_NO = 2;
+const CHAPTER_NAMES = { station: "1. All Aboard!", junction: "2. Timetable Trouble", route: "3. Volcano or Frosty", bridge: "4. The Lightning Bridge", castle: "5. Count Cuckoo’s Castle" };
+let cRun = null;
+function cStart(id) { cRun = { id, ms: 0, pen: 0, since: document.visibilityState === "hidden" ? 0 : performance.now() }; showTimer(); }
+function cPause() { if (cRun && cRun.since) { cRun.ms += performance.now() - cRun.since; cRun.since = 0; } }
+function cResume() { if (cRun && !cRun.since && document.visibilityState !== "hidden") cRun.since = performance.now(); }
+function cTotal() { return cRun ? (cRun.ms + (cRun.since ? performance.now() - cRun.since : 0)) / 1000 + cRun.pen * PENALTY_S : 0; }
+document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" ? cPause() : cResume());
+function chapterItems(id) { return (id === "route" ? CH.volcano : CH[id]).make().reduce((k, q) => k + (q.type === "steps" ? q.steps.length : 1), 0); }
+function bestPerPlayer(rows, n = 10) { const seen = new Set(), out = []; for (const r of rows || []) { const k = String(r.player).trim().toLowerCase(); if (seen.has(k)) continue; seen.add(k); out.push(r); if (out.length >= n) break; } return out; }
+const chapterTop = (id) => sb("chapter_times?select=player,hero,time_seconds,accuracy,created_at&game=eq." + GAME_NO + "&chapter=eq." + id + "&order=time_seconds.asc,created_at.asc&limit=200");
+const sendChapter = (row) => sb("chapter_times", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });
+async function fillChapterBoard(el, id, mine) {
+  el.innerHTML = `<p class="status">Loading the class leaderboard…</p>`;
+  try { el.innerHTML = boardHTML(bestPerPlayer(await chapterTop(id)), mine); } catch (e) { el.innerHTML = `<p class="status">The class leaderboard didn’t load. Check the internet connection and try again.</p>`; }
+}
+function chapterDone(id, next) {
+  if (!cRun) return next();
+  cPause(); const secs = Math.max(1, Math.round(cTotal())), pen = cRun.pen, items = chapterItems(id), acc = Math.round(items / (items + pen) * 100);
+  cRun = null; showTimer(); progress(null);
+  const player = (state.name || "").trim();
+  const best = state.chBest || (state.chBest = {}); const isPB = !best[id] || secs < best[id]; if (isPB) best[id] = secs; save();
+  $("panel").innerHTML = `<h2 style="font-size:28px; text-align:center">Chapter complete!</h2>
+    <p class="context" style="text-align:center; margin:4px 0 0">${esc(CHAPTER_NAMES[id])}</p>
+    <div class="bigtime">${wholeTxt(secs)}</div>
+    <p class="context" style="text-align:center"><b>${acc}% accuracy</b>${pen ? ", " + pen + " wrong answer" + (pen === 1 ? "" : "s") + " (+" + pen * PENALTY_S + " seconds)" : ""}. ${isPB ? "Your best time for this chapter!" : "Your best: " + wholeTxt(best[id])}</p>
+    <div id="board"></div><div class="row"><button class="btn" id="cnext">Continue</button></div>`;
+  $("cnext").onclick = next;
+  const el = $("board");
+  if (!player) { el.innerHTML = `<p class="status">Add your name on the title screen to get on the chapter leaderboard.</p>`; return; }
+  if (secs < 10 || secs > 7200) { fillChapterBoard(el, id); return; }
+  el.innerHTML = `<p class="status">Adding your time to the chapter leaderboard…</p>`;
+  sendChapter({ game: GAME_NO, chapter: id, player: player.slice(0, 20), hero: state.hero, time_seconds: secs, wrong_answers: pen, accuracy: acc })
+    .then(() => fillChapterBoard(el, id, { player, time_seconds: secs }))
+    .catch(() => { el.innerHTML = `<p class="status">Your chapter time didn’t send. Check the internet connection. Your progress is still saved.</p>`; });
+}
+function leaderboardScreen(which = "journey") {
   progress(null); setScene("bridge", 1);
-  $("panel").innerHTML = `<h2 style="font-size:30px">Class speedrun leaderboard</h2>${state.pb ? `<p class="context">Your personal best on this device: <b>${wholeTxt(state.pb)}</b></p>` : ""}<div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button></div>`;
-  $("map").onclick = mapScreen; fillBoard($("board"));
-}
-function speedrunIntro() {
-  progress(null); setScene("bridge", .5);
-  const total = SPEED_ORDER.reduce((n, k) => n + CH[k].make().length, 0);
-  $("panel").innerHTML = `<div class="dialog"><div class="portrait">${PORTRAITS["Count Cuckoo"]}</div><div><div class="speaker">Count Cuckoo</div><p class="line">Cuckoo! A race? Ride the whole line as fast as you can!</p></div></div>
-    <ul class="rules"><li>${total} questions from every stop, one after another.</li><li>The clock only runs while you’re answering.</li><li>Every wrong answer adds ${PENALTY_S} seconds, so don’t guess!</li></ul>
-    <div class="row"><button class="btn ghost" id="map">Back</button><button class="btn" id="go">Start the clock</button></div>`;
+  const tabs = [["journey", "Whole journey"], ...Object.entries(CHAPTER_NAMES)];
+  $("panel").innerHTML = `<h2 style="font-size:28px">Class leaderboards</h2>
+    <div class="row" style="justify-content:flex-start; margin-top:12px">${tabs.map(([k, label]) => `<button class="btn small ${k === which ? "" : "ghost"}" data-tab="${k}">${esc(label)}</button>`).join("")}</div>
+    ${which === "journey" && state.pb ? `<p class="context" style="margin-top:12px">Your best on this device: <b>${wholeTxt(state.pb)}</b></p>` : ""}
+    ${which !== "journey" && state.chBest && state.chBest[which] ? `<p class="context" style="margin-top:12px">Your best on this device: <b>${wholeTxt(state.chBest[which])}</b></p>` : ""}
+    <div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button></div>`;
+  document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => leaderboardScreen(b.dataset.tab));
   $("map").onclick = mapScreen;
-  $("go").onclick = () => {
-    const qs = [], chs = []; SPEED_ORDER.forEach((k) => CH[k].make().forEach((q) => { qs.push(q); chs.push(k); }));
-    run = { qs, chs, q: 0, streak: 0, hp: qs.length, speed: { ms: 0, since: 0, pen: 0 } };
-    SFX.whistle(); showTimer(true); drawTimer(); question();
-  };
+  which === "journey" ? fillBoard($("board")) : fillChapterBoard($("board"), which);
 }
-function finishSpeedrun() {
-  tickStop(); showTimer(false);
-  const exact = speedTotal(), secs = Math.round(exact), pen = run.speed.pen, isPB = !state.pb || secs < state.pb;
-  if (isPB) state.pb = secs; save(); progress(1); setScene("finale"); SFX.win(); confetti(80);
+function finishJourney() {
+  if (!journeyActive()) return certificate();
+  jPause(); const j = state.journey; j.finished = true;
+  const exact = jTotal(), secs = Math.round(exact), pen = j.pen; j.secs = secs;
+  const isPB = !state.pb || secs < state.pb; if (isPB) state.pb = secs; save(); showTimer();
+  progress(null); setScene("finale");
   const ok = secs >= 60 && secs <= 7200;
-  $("panel").innerHTML = `<h2 style="font-size:30px; text-align:center">Speedrun complete!</h2><div class="bigtime">${clockTxt(exact)}</div>
+  $("panel").innerHTML = `<h2 style="font-size:30px; text-align:center">Journey complete!</h2><div class="bigtime">${clockTxt(exact)}</div>
     <p class="context" style="text-align:center"><b>${accuracy(pen)}% accuracy</b>, ${pen} wrong answer${pen === 1 ? "" : "s"} (+${pen * PENALTY_S} seconds). ${isPB ? "New personal best!" : "Personal best: " + wholeTxt(state.pb)}</p>
     ${ok ? `<div class="namefield"><label for="lbname"><b>Name for the leaderboard (first name or nickname)</b></label><input id="lbname" maxlength="20" autocomplete="off" value="${esc(state.name)}"></div><div class="row"><button class="btn" id="send">Add my time</button></div>` : `<p class="status">This time can’t go on the class leaderboard.</p>`}
-    <div id="board"></div><div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn ghost" id="again">Try again</button></div>`;
-  $("map").onclick = mapScreen; $("again").onclick = speedrunIntro;
+    <div id="board"></div><div class="row"><button class="btn" id="cert">See my certificate</button></div>`;
+  $("cert").onclick = certificate;
   if ($("send")) {
     $("send").onclick = async () => {
       const player = $("lbname").value.trim().slice(0, 20); if (!player) { $("lbname").focus(); return; }
@@ -937,6 +979,7 @@ function finishSpeedrun() {
 
 hud();
 titleScreen();
+jResume();
 </script>
 </body>
 </html>
