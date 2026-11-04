@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Clocktower of Tickwick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky-top:#2E2A5C; --sky-bottom:#6B4E8C;
+  --panel:#FFFDF8; --panel-2:#F1ECFA; --ink:#22264B; --muted:#5A5878;
+  --brass:#D9A441; --brass-dark:#A8761C; --mint:#3FA88A; --mint-soft:#DDF3EC;
+  --rose:#C8506A; --rose-soft:#FBE4E9; --line:#D9D2EA; --page:#1E1B3F;
+  --clock-face:#FFFFFF; --clock-ink:#22264B;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --panel:#2A2750; --panel-2:#35315F; --ink:#F3F0FF; --muted:#C3BEE0;
+    --mint-soft:#1F4A42; --rose-soft:#4E2638; --line:#4A4578; --page:#141230;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --panel:#2A2750; --panel-2:#35315F; --ink:#F3F0FF; --muted:#C3BEE0;
+  --mint-soft:#1F4A42; --rose-soft:#4E2638; --line:#4A4578; --page:#141230;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0; min-height:100%}
+html{background:var(--page)}
+body{
+  background:var(--page);
+  background-image:radial-gradient(circle at 20% 0%, #3B3470 0%, transparent 55%);
+  color:var(--ink);
+  font-family:"Nunito", "Trebuchet MS", Arial, sans-serif;
+  font-size:18px; line-height:1.5; min-height:100%;
+}
+.app{max-width:780px; margin:0 auto; padding:16px 14px 40px}
+h1,h2,h3,.display{font-family:"Fredoka", "Nunito", Arial, sans-serif; line-height:1.15; margin:0}
+button{font:inherit; cursor:pointer}
+button:focus-visible, input:focus-visible{outline:4px solid var(--brass); outline-offset:3px}
+.hud{display:flex; align-items:center; justify-content:space-between; gap:10px; color:#F3F0FF; padding:4px 4px 12px; flex-wrap:wrap}
+.hud .title{font-family:"Fredoka",Arial,sans-serif; font-weight:600; font-size:20px}
+.pills{display:flex; gap:8px}
+.pill{display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); padding:4px 12px 4px 6px; border-radius:999px; font-weight:800; font-size:17px}
+.pill svg{width:26px; height:26px}
+.scene{border-radius:22px; overflow:hidden; line-height:0; box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.scene svg{width:100%; height:auto; display:block}
+.panel{background:var(--panel); border-radius:22px; padding:22px; margin-top:-18px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.dialog{display:flex; gap:16px; align-items:flex-start}
+.portrait{flex:0 0 84px; width:84px; height:84px; border-radius:50%; background:var(--panel-2); display:grid; place-items:center; overflow:hidden; border:3px solid var(--brass)}
+.portrait svg{width:84px; height:84px}
+.speaker{font-family:"Fredoka",Arial,sans-serif; font-weight:600; color:var(--brass-dark); font-size:18px}
+:root[data-theme="dark"] .speaker{color:var(--brass)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .speaker{color:var(--brass)}}
+.line{font-size:21px; margin:4px 0 0}
+.row{display:flex; gap:10px; justify-content:flex-end; align-items:center; margin-top:18px; flex-wrap:wrap}
+.btn{border:none; border-radius:16px; padding:12px 22px; font-weight:800; font-size:19px; background:var(--brass); color:#2A1C00; box-shadow:0 4px 0 var(--brass-dark); transition:transform .08s}
+.btn:active{transform:translateY(3px); box-shadow:0 1px 0 var(--brass-dark)}
+.btn.ghost{background:var(--panel-2); color:var(--ink); box-shadow:0 4px 0 var(--line)}
+.btn.small{padding:8px 14px; font-size:16px}
+.speak{background:none; border:2px solid var(--line); color:var(--muted); border-radius:12px; padding:6px 10px; font-weight:700; font-size:15px}
+.prompt{font-size:22px; font-weight:800; margin:0 0 4px}
+.context{color:var(--muted); font-size:17px; margin:0 0 12px}
+.visual{display:flex; justify-content:center; gap:22px; flex-wrap:wrap; margin:10px 0 16px}
+.clockwrap{text-align:center}
+.clockwrap svg{width:190px; height:190px}
+.clockwrap .cap{font-weight:800; margin-top:4px}
+.options{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.opt{border:3px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:16px; padding:14px 10px; font-weight:800; font-size:21px; min-height:64px}
+.opt:hover:not(:disabled){border-color:var(--brass)}
+.opt.wrong{background:var(--rose-soft); border-color:var(--rose); opacity:.75; animation:shake .35s}
+.opt.right{background:var(--mint-soft); border-color:var(--mint)}
+.opt:disabled{cursor:default}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.feedback{margin-top:14px; border-radius:16px; padding:12px 16px; font-size:18px; display:none}
+.feedback.show{display:block}
+.feedback.good{background:var(--mint-soft); border:2px solid var(--mint)}
+.feedback.hint{background:var(--rose-soft); border:2px solid var(--rose)}
+.feedback b{font-family:"Fredoka",Arial,sans-serif}
+.nl{overflow-x:auto; margin:6px 0 10px}
+.nl svg{width:100%; min-width:460px; height:auto}
+.steps{list-style:none; padding:0; margin:0 0 10px}
+.steps li{padding:6px 0; color:var(--muted); font-size:17px}
+.steps li.done{color:var(--mint)}
+.steps li.now{color:var(--ink); font-weight:800; font-size:20px}
+.setter{display:flex; flex-direction:column; align-items:center; gap:10px}
+.setter svg{width:230px; height:230px; touch-action:none}
+.digital{font-family:"Fredoka",Arial,sans-serif; font-size:30px; font-weight:700; background:var(--ink); color:var(--panel); padding:2px 16px; border-radius:10px; min-width:120px; text-align:center}
+.controls{display:grid; grid-template-columns:repeat(4,auto); gap:8px; justify-content:center}
+.controls .label{grid-column:1/-1; text-align:center; color:var(--muted); font-size:15px}
+.boss{display:flex; align-items:center; gap:12px; margin:0 0 14px}
+.boss svg{width:54px; height:54px; flex:0 0 54px}
+.hp{flex:1; height:18px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:2px solid var(--line)}
+.hp i{display:block; height:100%; background:linear-gradient(90deg,#7A4FB0,#B57BE0); transition:width .4s}
+.progress{height:8px; background:rgba(255,255,255,.15); border-radius:999px; overflow:hidden; margin:0 4px 12px}
+.progress i{display:block; height:100%; background:var(--brass); transition:width .3s}
+.map{display:grid; gap:14px}
+.chapter{display:flex; gap:14px; align-items:center; text-align:left; width:100%; border:3px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:18px; padding:12px 16px}
+.chapter .num{flex:0 0 52px; height:52px; border-radius:50%; display:grid; place-items:center; background:var(--brass); color:#2A1C00; font-family:"Fredoka",Arial,sans-serif; font-weight:700; font-size:24px}
+.chapter.locked{opacity:.5; cursor:not-allowed}
+.chapter.locked .num{background:var(--line); color:var(--muted)}
+.chapter .t{font-family:"Fredoka",Arial,sans-serif; font-weight:600; font-size:21px}
+.chapter .d{color:var(--muted); font-size:16px}
+.chapter .tick{margin-left:auto; color:var(--mint); font-weight:800; font-size:16px}
+.namefield{display:flex; flex-direction:column; gap:6px; margin-top:16px}
+.namefield input{font:inherit; font-size:21px; padding:10px 14px; border-radius:14px; border:3px solid var(--line); background:var(--panel-2); color:var(--ink)}
+.cert{text-align:center; border:5px double var(--brass); border-radius:18px; padding:22px 16px}
+.cert h2{font-size:32px; color:var(--brass-dark)}
+:root[data-theme="dark"] .cert h2{color:var(--brass)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cert h2{color:var(--brass)}}
+.cert .who{font-family:"Fredoka",Arial,sans-serif; font-size:36px; margin:10px 0}
+.pop{animation:pop .45s ease-out}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (max-width:560px){
+  body{font-size:17px}
+  .options{grid-template-columns:1fr}
+  .portrait{flex-basis:60px; width:60px; height:60px}
+  .portrait svg{width:60px; height:60px}
+  .line{font-size:19px}
+  .clockwrap svg{width:150px; height:150px}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <div class="title">The Clocktower of Tickwick</div>
+    <div class="pills">
+      <div class="pill" title="Golden cogs"><span id="cogIcon"></span><span id="cogs">0</span></div>
+      <div class="pill" title="First-try stars"><span id="starIcon"></span><span id="stars">0</span></div>
+    </div>
+  </div>
+  <div class="progress" id="progressBar" hidden><i id="progressFill" style="width:0%"></i></div>
+  <div class="scene" id="scene"></div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const norm = (t) => ((t % 720) + 720) % 720;
+function fmt(t) { t = norm(t); let h = Math.floor(t / 60); const m = t % 60; if (h === 0) h = 12; return h + ":" + String(m).padStart(2, "0"); }
+function hourOf(t) { t = norm(t); return Math.floor(t / 60) || 12; }
+function words(t) {
+  t = norm(t); const h = hourOf(t), m = t % 60, next = (h % 12) + 1;
+  if (m === 0) return h + " o’clock";
+  if (m === 15) return "quarter past " + h;
+  if (m === 30) return "half past " + h;
+  if (m === 45) return "quarter to " + next;
+  if (m < 30) return m + " minute" + (m === 1 ? "" : "s") + " past " + h;
+  const r = 60 - m; return r + " minute" + (r === 1 ? "" : "s") + " to " + next;
+}
+function dur(d) {
+  const h = Math.floor(d / 60), m = d % 60, out = [];
+  if (h) out.push(h + " hour" + (h > 1 ? "s" : ""));
+  if (m || !h) out.push(m + " minute" + (m === 1 ? "" : "s"));
+  return out.join(" ");
+}
+function shortDur(d) { const h = Math.floor(d / 60), m = d % 60; return (h ? h + " h " : "") + (m || !h ? m + " min" : "").trim(); }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- storage ---------- */
+const SAVE_KEY = "tickwick-save-v1";
+function load() { try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (v) return v; } catch (e) {} return null; }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+let state = load() || { name: "", cogs: 0, stars: 0, done: [] };
+
+/* ---------- art ---------- */
+const ICON_COG = `<svg viewBox="0 0 40 40" aria-hidden="true"><g fill="#D9A441" stroke="#A8761C" stroke-width="2"><path d="M17 2h6l1 5 4 2 4-3 4 4-3 4 2 4 5 1v6l-5 1-2 4 3 4-4 4-4-3-4 2-1 5h-6l-1-5-4-2-4 3-4-4 3-4-2-4-5-1v-6l5-1 2-4-3-4 4-4 4 3 4-2z"/></g><circle cx="20" cy="20" r="6" fill="#2E2A5C"/></svg>`;
+const ICON_STAR = `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1z" fill="#FFE07A" stroke="#D9A441" stroke-width="2"/></svg>`;
+
+function clockSVG(t, opts = {}) {
+  const r = 90, c = 100, mins = norm(t);
+  let s = `<svg viewBox="0 0 200 200" role="img" aria-label="${opts.label || "An analogue clock"}">`;
+  s += `<circle cx="100" cy="100" r="96" fill="#D9A441"/><circle cx="100" cy="100" r="${r}" fill="var(--clock-face)" stroke="#A8761C" stroke-width="3"/>`;
+  for (let i = 0; i < 60; i++) {
+    const a = i * 6 * Math.PI / 180, big = i % 5 === 0;
+    const r1 = r - (big ? 12 : 6), r2 = r - 2;
+    s += `<line x1="${c + r1 * Math.sin(a)}" y1="${c - r1 * Math.cos(a)}" x2="${c + r2 * Math.sin(a)}" y2="${c - r2 * Math.cos(a)}" stroke="var(--clock-ink)" stroke-width="${big ? 3 : 1.2}" stroke-linecap="round"/>`;
+  }
+  for (let n = 1; n <= 12; n++) {
+    const a = n * 30 * Math.PI / 180, rr = r - 25;
+    s += `<text x="${c + rr * Math.sin(a)}" y="${c - rr * Math.cos(a) + 6}" font-family="Fredoka, Arial, sans-serif" font-weight="600" font-size="17" text-anchor="middle" fill="var(--clock-ink)">${n}</text>`;
+  }
+  const ha = (mins / 720) * 360 * Math.PI / 180, ma = (mins % 60) * 6 * Math.PI / 180;
+  s += `<line ${opts.id ? `id="${opts.id}-h"` : ""} x1="100" y1="100" x2="${c + r * 0.5 * Math.sin(ha)}" y2="${c - r * 0.5 * Math.cos(ha)}" stroke="var(--clock-ink)" stroke-width="8" stroke-linecap="round"/>`;
+  s += `<line ${opts.id ? `id="${opts.id}-m"` : ""} x1="100" y1="100" x2="${c + r * 0.8 * Math.sin(ma)}" y2="${c - r * 0.8 * Math.cos(ma)}" stroke="var(--clock-ink)" stroke-width="4.5" stroke-linecap="round"/>`;
+  s += `<circle cx="100" cy="100" r="6" fill="var(--clock-ink)"/></svg>`;
+  return s;
+}
+
+/* number line: stops = labels, jumps = labels (null = hidden "?"), back = arrows go left */
+function numberLine(stops, jumps, back = false) {
+  const W = 640, H = 170, X0 = 50, X1 = 590, Y = 120;
+  const n = stops.length - 1, xs = stops.map((_, i) => X0 + (X1 - X0) * i / n);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Number line from ${stops[0]} to ${stops[n]}">`;
+  s += `<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#D9A441"/></marker></defs>`;
+  s += `<line x1="${X0 - 20}" y1="${Y}" x2="${X1 + 20}" y2="${Y}" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>`;
+  xs.forEach((x, i) => {
+    s += `<line x1="${x}" y1="${Y - 10}" x2="${x}" y2="${Y + 10}" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>`;
+    s += `<text x="${x}" y="${Y + 38}" text-anchor="middle" font-family="Fredoka, Arial, sans-serif" font-weight="700" font-size="22" fill="var(--ink)">${stops[i]}</text>`;
+  });
+  jumps.forEach((lbl, i) => {
+    const a = xs[i] + 8, b = xs[i + 1] - 8, [p, q] = back ? [b, a] : [a, b];
+    const shown = lbl !== null;
+    s += `<path d="M${p},${Y - 14} C${p},${Y - 80} ${q},${Y - 80} ${q},${Y - 16}" fill="none" stroke="${shown ? "#D9A441" : "var(--line)"}" stroke-width="4" ${shown ? "" : 'stroke-dasharray="8 7"'} marker-end="url(#ar)"/>`;
+    s += `<text x="${(xs[i] + xs[i + 1]) / 2}" y="${Y - 78}" text-anchor="middle" font-family="Fredoka, Arial, sans-serif" font-weight="700" font-size="21" fill="${shown ? "var(--ink)" : "var(--muted)"}">${shown ? lbl : "?"}</text>`;
+  });
+  return s + `</svg>`;
+}
+
+/* portraits */
+const PORTRAITS = {
+  Pip: `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#E8DDF7"/><circle cx="22" cy="30" r="15" fill="#B8A9C9"/><circle cx="22" cy="30" r="8" fill="#F4B6C2"/><circle cx="62" cy="30" r="15" fill="#B8A9C9"/><circle cx="62" cy="30" r="8" fill="#F4B6C2"/><ellipse cx="42" cy="52" rx="24" ry="22" fill="#C9BBD8"/><circle cx="34" cy="48" r="4" fill="#22264B"/><circle cx="50" cy="48" r="4" fill="#22264B"/><circle cx="35" cy="47" r="1.3" fill="#fff"/><circle cx="51" cy="47" r="1.3" fill="#fff"/><circle cx="42" cy="58" r="4" fill="#F28AA0"/><path d="M28 60h-12M28 63l-11 4M56 60h12M56 63l11 4" stroke="#7A6E8A" stroke-width="1.5"/><path d="M36 66q6 4 12 0" stroke="#22264B" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
+  "Mayor Bramble": `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#DDEFE8"/><rect x="26" y="6" width="32" height="18" rx="3" fill="#22264B"/><rect x="20" y="22" width="44" height="5" rx="2" fill="#22264B"/><ellipse cx="42" cy="54" rx="26" ry="24" fill="#5B5B6B"/><path d="M42 30 L36 78 L48 78 Z" fill="#F6F3EE"/><path d="M24 40 Q30 60 34 74" stroke="#F6F3EE" stroke-width="7" fill="none"/><path d="M60 40 Q54 60 50 74" stroke="#F6F3EE" stroke-width="7" fill="none"/><circle cx="33" cy="50" r="3.5" fill="#22264B"/><circle cx="51" cy="50" r="3.5" fill="#22264B"/><ellipse cx="42" cy="64" rx="5" ry="4" fill="#22264B"/><circle cx="42" cy="80" r="5" fill="#D9A441"/></svg>`,
+  Grimsby: `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#E4DDF0"/><ellipse cx="42" cy="56" rx="24" ry="22" fill="#2B2440"/><circle cx="42" cy="36" r="18" fill="#2B2440"/><rect x="30" y="6" width="24" height="14" rx="2" fill="#7A4FB0"/><rect x="25" y="18" width="34" height="4" rx="2" fill="#7A4FB0"/><circle cx="35" cy="34" r="5" fill="#fff"/><circle cx="49" cy="34" r="5" fill="#fff"/><circle cx="36" cy="35" r="2.4" fill="#22264B"/><circle cx="50" cy="35" r="2.4" fill="#22264B"/><path d="M36 42 L42 54 L48 42 Z" fill="#E8A33D"/><path d="M28 28 L36 30M56 28 L48 30" stroke="#2B2440" stroke-width="3" stroke-linecap="round"/></svg>`,
+  "Captain Ottilie": `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#D6E8F5"/><circle cx="22" cy="30" r="7" fill="#8A5A3B"/><circle cx="62" cy="30" r="7" fill="#8A5A3B"/><ellipse cx="42" cy="52" rx="26" ry="24" fill="#A9714B"/><ellipse cx="42" cy="62" rx="15" ry="11" fill="#E8C9A6"/><circle cx="33" cy="47" r="3.5" fill="#22264B"/><circle cx="51" cy="47" r="3.5" fill="#22264B"/><ellipse cx="42" cy="57" rx="5" ry="3.5" fill="#3A2416"/><path d="M20 24 Q42 8 64 24 L60 30 Q42 20 24 30 Z" fill="#22264B"/><circle cx="42" cy="20" r="3" fill="#D9A441"/></svg>`,
+  Narrator: `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#F4E7C8"/><path d="M14 26 Q28 20 42 28 Q56 20 70 26 V64 Q56 58 42 66 Q28 58 14 64 Z" fill="#FFFDF8" stroke="#A8761C" stroke-width="3"/><path d="M42 28 V66" stroke="#A8761C" stroke-width="3"/><path d="M20 36h16M20 44h16M20 52h12M48 36h16M48 44h16M48 52h12" stroke="#C9B48A" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+};
+
+/* scenes */
+function stars(n, w, h) { let s = ""; for (let i = 0; i < n; i++) s += `<circle cx="${(i * 97) % w}" cy="${(i * 53) % h}" r="${i % 3 ? 1.4 : 2.2}" fill="#FFF6D8" opacity="${i % 2 ? .7 : 1}"/>`; return s; }
+function sky(id) { return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E2A5C"/><stop offset="1" stop-color="#8B5E8E"/></linearGradient></defs><rect width="640" height="280" fill="url(#${id})"/>`; }
+function towerClock(cx, cy, r, t) {
+  const ha = (norm(t) / 720) * 2 * Math.PI, ma = (t % 60) * 6 * Math.PI / 180;
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#FFF6D8" stroke="#D9A441" stroke-width="5"/><line x1="${cx}" y1="${cy}" x2="${cx + r * .5 * Math.sin(ha)}" y2="${cy - r * .5 * Math.cos(ha)}" stroke="#22264B" stroke-width="5" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${cx + r * .8 * Math.sin(ma)}" y2="${cy - r * .8 * Math.cos(ma)}" stroke="#22264B" stroke-width="3" stroke-linecap="round"/>`;
+}
+const SCENES = {
+  town: (fixed) => `<svg viewBox="0 0 640 280" aria-hidden="true">${sky("s1")}${stars(26, 640, 140)}
+    <circle cx="540" cy="60" r="26" fill="#FFF0C2"/>
+    <path d="M0 220 Q160 170 320 210 T640 200 V280 H0Z" fill="#3D3266"/>
+    <g fill="#4B3F7A"><rect x="40" y="170" width="70" height="80"/><path d="M34 172 L75 130 L116 172Z"/><rect x="470" y="160" width="80" height="90"/><path d="M462 162 L510 118 L558 162Z"/><rect x="130" y="190" width="60" height="60"/><path d="M124 192 L160 158 L196 192Z"/></g>
+    <g fill="${fixed ? "#FFD66B" : "#6E62A0"}"><rect x="55" y="190" width="14" height="16"/><rect x="85" y="190" width="14" height="16"/><rect x="490" y="185" width="14" height="16"/><rect x="522" y="185" width="14" height="16"/><rect x="150" y="205" width="14" height="14"/></g>
+    <rect x="270" y="70" width="100" height="190" fill="#5A4B8C"/><path d="M258 72 L320 14 L382 72Z" fill="#7A4FB0"/>
+    ${towerClock(320, 120, 34, fixed ? 600 : 0)}
+    <rect x="304" y="210" width="32" height="50" rx="16" fill="#2E2A5C"/>
+    <path d="M0 250 H640 V280 H0Z" fill="#2A2350"/>
+    ${fixed ? `<g fill="#FFE07A">${[60, 140, 220, 420, 500, 580].map((x, i) => `<circle cx="${x}" cy="${40 + (i % 3) * 22}" r="5"/>`).join("")}</g>` : ""}
+  </svg>`,
+  market: () => `<svg viewBox="0 0 640 280" aria-hidden="true">${sky("s2")}${stars(20, 640, 110)}
+    <path d="M0 230 H640 V280 H0Z" fill="#3D3266"/>
+    ${[30, 230, 430].map((x, i) => `<rect x="${x + 10}" y="150" width="160" height="90" fill="#5A4B8C"/>
+      <g>${[0, 1, 2, 3, 4].map((k) => `<path d="M${x + k * 36} 150 l18 -40 h36 l-18 40z" fill="${k % 2 ? "#FFF6D8" : ["#C8506A", "#3FA88A", "#D9A441"][i]}"/>`).join("")}</g>
+      <rect x="${x + 30}" y="190" width="120" height="14" rx="4" fill="#D9A441"/>
+      <circle cx="${x + 55}" cy="186" r="9" fill="#F28AA0"/><circle cx="${x + 80}" cy="186" r="9" fill="#FFD66B"/><circle cx="${x + 105}" cy="186" r="9" fill="#9AD7A8"/>`).join("")}
+    <path d="M0 70 Q160 110 320 70 T640 70" stroke="#FFF6D8" stroke-width="1.5" fill="none" opacity=".6"/>
+    ${[60, 170, 280, 390, 500, 600].map((x, i) => `<circle cx="${x}" cy="${78 + (i % 2) * 14}" r="9" fill="#FFD66B"/>`).join("")}
+  </svg>`,
+  river: () => `<svg viewBox="0 0 640 280" aria-hidden="true">${sky("s3")}${stars(24, 640, 130)}
+    <circle cx="110" cy="64" r="30" fill="#FFF0C2"/>
+    <path d="M0 160 Q120 130 260 150 T640 140 V170 H0Z" fill="#3D3266"/>
+    <rect x="0" y="168" width="640" height="112" fill="#355C8C"/>
+    ${[0, 1, 2, 3].map((k) => `<path d="M0 ${195 + k * 22} q40 -10 80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0" stroke="#7FB3E0" stroke-width="3" fill="none" opacity=".6"/>`).join("")}
+    <g transform="translate(330 150)"><path d="M0 40 H170 L150 70 H20 Z" fill="#C8506A"/><rect x="40" y="10" width="80" height="30" rx="4" fill="#FFF6D8"/><rect x="52" y="18" width="16" height="14" fill="#7FB3E0"/><rect x="90" y="18" width="16" height="14" fill="#7FB3E0"/><rect x="74" y="-20" width="12" height="30" fill="#22264B"/></g>
+    <path d="M540 150 L560 60 L580 150Z" fill="#4B3F7A"/>
+  </svg>`,
+  tower: () => `<svg viewBox="0 0 640 280" aria-hidden="true">${sky("s4")}${stars(34, 640, 160)}
+    <path d="M0 240 Q320 190 640 240 V280 H0Z" fill="#2A2350"/>
+    <rect x="270" y="80" width="100" height="180" fill="#3A2F5E"/><path d="M262 82 L320 20 L378 82Z" fill="#7A4FB0"/>
+    <rect x="300" y="120" width="40" height="50" rx="20" fill="#FFD66B" opacity=".85"/>
+    <g transform="translate(296 -6)"><ellipse cx="24" cy="44" rx="18" ry="16" fill="#1A1530"/><circle cx="24" cy="26" r="13" fill="#1A1530"/><rect x="15" y="4" width="18" height="10" fill="#7A4FB0"/><rect x="11" y="13" width="26" height="3" fill="#7A4FB0"/><circle cx="19" cy="25" r="3.5" fill="#FFE07A"/><circle cx="29" cy="25" r="3.5" fill="#FFE07A"/><path d="M20 31 L24 39 L28 31Z" fill="#E8A33D"/></g>
+    ${[0, 1, 2, 3, 4, 5].map((i) => `<circle cx="${160 + i * 64}" cy="${200 - (i % 2) * 14}" r="6" fill="#D9A441" opacity=".6"/>`).join("")}
+  </svg>`,
+};
+
+/* ---------- question generators ---------- */
+function timeOptions(t, extra = []) {
+  const set = new Set([fmt(t)]);
+  const cands = shuffle([...extra, fmt(t + 60), fmt(t - 60), fmt(t + 5), fmt(t - 5), fmt(t + 10), fmt(t - 10)]);
+  for (const c of cands) { if (set.size >= 4) break; set.add(c); }
+  return shuffle([...set]);
+}
+function swappedRead(t) { const h = hourOf(t), m = t % 60; const n = Math.round(m / 5) % 12 || 12; return n + ":" + String((h % 12) * 5).padStart(2, "0"); }
+function durOptions(d, naive) {
+  const set = new Set([dur(d)]);
+  const cands = shuffle([naive, d + 5, d - 5, d + 10, d - 10, d + 60, d - 60].filter((x) => x > 0)).map(dur);
+  for (const c of cands) { if (set.size >= 4) break; set.add(c); }
+  return shuffle([...set]);
+}
+function naiveElapsed(a, b) { return Math.max(0, hourOf(b) - hourOf(a)) * 60 + Math.abs((b % 60) - (a % 60)); }
+function naiveAdd(t, d) { const m = (t % 60) + (d % 60); return hourOf(t) + Math.floor(d / 60) + ":" + String(m).padStart(2, "0"); }
+function minOptions(x) {
+  const set = new Set([x + " minutes"]);
+  for (const c of shuffle([x + 5, x - 5, x + 10, 60 - x, x + 15].filter((v) => v > 0 && v !== x))) { if (set.size >= 4) break; set.add(c + " minutes"); }
+  return shuffle([...set]);
+}
+const startTime = (step = 1, minH = 1, maxH = 9) => rnd(minH, maxH) * 60 + (step === 1 ? rnd(1, 59) : rnd(1, 11) * 5);
+
+function qRead(t, context) {
+  const opts = timeOptions(t, [swappedRead(t)]);
+  return { type: "mc", prompt: "What time does this clock show?", context, visual: `<div class="clockwrap">${clockSVG(t)}</div>`, options: opts, answer: fmt(t),
+    hint: t % 60 >= 30
+      ? "Look closely at the short hand. It has gone past " + hourOf(t) + " but hasn’t reached " + (hourOf(t) % 12 + 1) + " yet. Then count the minutes in 5s and 1s."
+      : "Find the hour with the short hand first. Then count around in 5s to the last big number, and count on the little marks in 1s.",
+    explain: "It’s " + fmt(t) + ", which we can say as " + words(t) + "." };
+}
+function qWords(t, context) {
+  const h = hourOf(t), m = t % 60, next = (h % 12) + 1;
+  const wrong = new Set();
+  if (m > 30) { wrong.add((60 - m) + " minutes to " + h); wrong.add((60 - m) + " minutes past " + h); }
+  else { wrong.add(m + " minutes to " + h); wrong.add(m + " minutes past " + next); }
+  wrong.add(words(t + 5)); wrong.add(words(t - 60));
+  const opts = shuffle([words(t), ...shuffle([...wrong].filter((w) => w !== words(t))).slice(0, 3)]);
+  return { type: "mc", prompt: "Which words match this clock?", context, visual: `<div class="clockwrap">${clockSVG(t)}</div>`, options: opts, answer: words(t),
+    hint: m > 30 ? "The long hand is on the left side, so we say “to”. How many minutes until the next hour? Do 60 − " + m + "." : "The long hand is on the right side, so we say “past”.",
+    explain: fmt(t) + " is " + words(t) + "." };
+}
+function qSet(t, prompt, context) { return { type: "set", prompt, context, target: t, explain: "Spot on. The clock shows " + fmt(t) + "." }; }
+
+function qElapsedSteps(a, d, context, who) {
+  const b = a + d, toOclock = 60 - (a % 60), oc = a + toOclock, rest = d - toOclock;
+  return { type: "steps", prompt: "How long " + who + "?", context: context + " Start: " + fmt(a) + ". Finish: " + fmt(b) + ".",
+    line: (k) => numberLine([fmt(a), fmt(oc), fmt(b)], [k > 0 ? "+" + toOclock + " min" : null, k > 1 ? "+" + shortDur(rest) : null]),
+    steps: [
+      { q: "Jump to the o’clock. How long from " + fmt(a) + " to " + fmt(oc) + "?", options: minOptions(toOclock), answer: toOclock + " minutes", hint: "Count on from " + (a % 60) + " minutes to 60 minutes. That’s 60 − " + (a % 60) + "." },
+      { q: "Now jump from " + fmt(oc) + " to " + fmt(b) + ". How long is that?", options: durOptions(rest, rest + 10), answer: dur(rest), hint: "From the o’clock, count whole hours first, then the minutes left over." },
+      { q: "Add your jumps together. How long altogether?", options: durOptions(d, naiveElapsed(a, b)), answer: dur(d), hint: "Add " + toOclock + " minutes and " + dur(rest) + ". If the minutes make 60 or more, swap 60 minutes for 1 hour." },
+    ], explain: toOclock + " minutes + " + dur(rest) + " = " + dur(d) + "." };
+}
+function qElapsedMC(a, d, context, who, clocks) {
+  const b = a + d;
+  return { type: "mc", prompt: "How long " + who + "?", context: context + (clocks ? "" : " Start: " + fmt(a) + ". Finish: " + fmt(b) + "."),
+    visual: clocks ? `<div class="clockwrap">${clockSVG(a)}<div class="cap">Start</div></div><div class="clockwrap">${clockSVG(b)}<div class="cap">Finish</div></div>` : "",
+    options: durOptions(d, naiveElapsed(a, b)), answer: dur(d),
+    hint: "Jump from " + fmt(a) + " to the next o’clock first (" + (60 - a % 60) + " minutes), then jump to " + fmt(b) + ".",
+    explain: "From " + fmt(a) + " to " + fmt(b) + " is " + dur(d) + "." };
+}
+function qFinishSteps(a, d, context) {
+  const toOclock = 60 - (a % 60), oc = a + toOclock, rest = d - toOclock, b = a + d;
+  return { type: "steps", prompt: "What time will it finish?", context,
+    line: (k) => numberLine([fmt(a), k > 0 ? fmt(oc) : "?", k > 2 ? fmt(b) : "?"], [k > 0 ? "+" + toOclock + " min" : null, k > 1 ? "+" + rest + " min" : null]),
+    steps: [
+      { q: "How many minutes from " + fmt(a) + " to " + fmt(oc) + "?", options: minOptions(toOclock), answer: toOclock + " minutes", hint: "60 − " + (a % 60) + " = ?" },
+      { q: "The trip is " + d + " minutes. We’ve used " + toOclock + ". How many minutes are left?", options: minOptions(rest), answer: rest + " minutes", hint: d + " − " + toOclock + " = ?" },
+      { q: "So what time does it finish?", options: timeOptions(b, [naiveAdd(a, d)]), answer: fmt(b), hint: "Start at " + fmt(oc) + " and add " + rest + " minutes." },
+    ], explain: fmt(a) + " + " + toOclock + " min = " + fmt(oc) + ", then + " + rest + " min = " + fmt(b) + "." };
+}
+function qFinishMC(a, d, context, clock) {
+  const b = a + d;
+  return { type: "mc", prompt: "What time will it finish?", context, visual: clock ? `<div class="clockwrap">${clockSVG(a)}<div class="cap">Start</div></div>` : "",
+    options: timeOptions(b, [naiveAdd(a, d)]), answer: fmt(b), hint: "Jump to the next o’clock first, then add on what’s left. Remember: 60 minutes make 1 hour.",
+    explain: fmt(a) + " + " + dur(d) + " = " + fmt(b) + "." };
+}
+function qStartSteps(b, d, context) {
+  const hrs = Math.floor(d / 60), mins = d % 60, afterHrs = b - hrs * 60, back1 = b % 60, back2 = mins - back1, oc = afterHrs - back1, a = b - d;
+  return { type: "steps", prompt: "What time did it start?", context, back: true,
+    line: (k) => numberLine([k > 2 ? fmt(a) : "?", k > 1 ? fmt(oc) : "?", k > 0 ? fmt(afterHrs) : "?", fmt(b)], [k > 2 ? "−" + back2 + " min" : null, k > 1 ? "−" + back1 + " min" : null, k > 0 ? "−" + hrs + " h" : null], true),
+    steps: [
+      { q: "Count back the whole hour" + (hrs > 1 ? "s" : "") + " first. What is " + fmt(b) + " take away " + dur(hrs * 60) + "?", options: timeOptions(afterHrs), answer: fmt(afterHrs), hint: "Keep the minutes the same. Just make the hour " + hrs + " smaller." },
+      { q: "Jump back to the o’clock. How many minutes from " + fmt(afterHrs) + " back to " + fmt(oc) + "?", options: minOptions(back1), answer: back1 + " minutes", hint: "How many minutes past the hour is " + fmt(afterHrs) + "?" },
+      { q: "We still need to go back " + back2 + " more minutes (" + mins + " − " + back1 + "). What is the start time?", options: timeOptions(a), answer: fmt(a), hint: "Count back " + back2 + " minutes from " + fmt(oc) + ". Going back past an o’clock lands you in the hour before." },
+    ], explain: "It started at " + fmt(a) + ". Check: " + fmt(a) + " + " + dur(d) + " = " + fmt(b) + "." };
+}
+function qStartMC(b, d, context) {
+  const a = b - d;
+  return { type: "mc", prompt: "What time did it start?", context, options: timeOptions(a, [fmt(b + d)]), answer: fmt(a),
+    hint: "Count back! Take away the hours first, then jump back to the o’clock, then the minutes left.",
+    explain: fmt(b) + " − " + dur(d) + " = " + fmt(a) + "." };
+}
+
+/* elapsed time that crosses an o’clock: d must be > minutes-to-o’clock */
+function crossing(step, minD, maxD, minH = 1, maxH = 8) {
+  for (;;) { const a = startTime(step, minH, maxH); let d = rnd(minD, maxD); if (step === 5) d = Math.round(d / 5) * 5; if (d > 60 - (a % 60) && (d - (60 - a % 60)) % 60 !== 0) return [a, d]; }
+}
+
+/* ---------- chapters ---------- */
+const CHAPTERS = [
+  { id: "town", title: "The Frozen Town", blurb: "Read the stopped clocks around Tickwick", scene: "town",
+    intro: [
+      ["Pip", "Psst! Down here! I’m Pip, the clocktower mouse."],
+      ["Pip", "Last night Grimsby the raven swooped in and stole every minute from the great clocktower!"],
+      ["Mayor Bramble", "Without our clocktower, nobody in Tickwick knows the time. The baker burnt the bread, and the school bell rang at midnight!"],
+      ["Pip", "Every frozen clock you read sets a golden cog free. Collect enough cogs and we can fix the clocktower. Ready, {name}?"],
+    ],
+    make: () => [
+      qRead(startTime(5, 1, 11), "The baker’s clock froze when Grimsby flew past."),
+      qRead(rnd(1, 11) * 60 + rnd(1, 29), "The library clock has stopped too."),
+      qRead(rnd(1, 11) * 60 + rnd(31, 59), "Even the fire station clock is stuck!"),
+      qWords(rnd(1, 11) * 60 + rnd(31, 59), "The school clock has a sign underneath with the time in words. Which sign is right?"),
+      (() => { const t = rnd(1, 11) * 60 + rnd(1, 59); return qSet(t, "Set the town hall clock to " + fmt(t), "Drag the long hand, or use the buttons."); })(),
+    ],
+    outro: [["Pip", "Look, the cogs are glowing! Grimsby flew off towards the market with a sack of minutes. After him!"]] },
+
+  { id: "market", title: "The Market of Lost Minutes", blurb: "Work out how long things took", scene: "market",
+    intro: [
+      ["Narrator", "The night market glows with lanterns, but every stall keeper is scratching their head."],
+      ["Mayor Bramble", "Grimsby scrambled everyone’s timetables. They need to know how long things took!"],
+      ["Pip", "Here’s my trick: jump from the start time to the o’clock first. Then jump to the finish. Then add your jumps."],
+    ],
+    make: () => {
+      const [a1, d1] = crossing(5, 15, 55), [a2, d2] = crossing(5, 70, 130), [a3, d3] = crossing(5, 15, 55), [a4, d4] = crossing(1, 40, 150);
+      return [
+        qElapsedSteps(a1, d1, "The pie stall was busy all evening.", "was the pie stall open"),
+        qElapsedSteps(a2, d2, "Fern the fox ran her toy stall.", "was the toy stall open"),
+        qElapsedMC(a3, d3, "Look at the lemonade stall’s clocks.", "was the lemonade stall open", true),
+        qElapsedMC(a4, d4, "The juggler did a very long show.", "was the juggling show"),
+      ];
+    },
+    outro: [["Grimsby", "Caw! Clever little detective. But you’ll never follow me across Tick River!"], ["Pip", "The ferry! Quick, let’s help the captain."]] },
+
+  { id: "river", title: "The Tick River Ferry", blurb: "Find when each trip will finish", scene: "river",
+    intro: [
+      ["Narrator", "Captain Ottilie the otter wants to sail, but Grimsby hid her timetable."],
+      ["Pip", "We know when each trip starts and how long it takes. We need the finish time."],
+      ["Pip", "Same trick: add on to the o’clock first, then add what’s left."],
+    ],
+    make: () => {
+      const [a1, d1] = crossing(5, 20, 50), [a2, d2] = crossing(1, 15, 55), [a3, d3] = crossing(5, 20, 55), [a4, d4] = crossing(1, 65, 110);
+      return [
+        qFinishSteps(a1, d1, "The first ferry leaves at " + fmt(a1) + ". The trip takes " + d1 + " minutes."),
+        qFinishMC(a2, d2, "The fishing trip starts at the time on this clock. It lasts " + d2 + " minutes.", true),
+        qSet(a3 + d3, "The sunset cruise leaves at " + fmt(a3) + " and takes " + d3 + " minutes. Set the clock to the finish time.", "Work it out first, then set the clock."),
+        qFinishMC(a4, d4, "The long trip up river leaves at " + fmt(a4) + " and takes " + dur(d4) + ".", false),
+      ];
+    },
+    outro: [["Captain Ottilie", "All aboard! Thanks to you, every trip is on time."], ["Pip", "There’s Grimsby’s tower on the hill. This is it, {name}!"]] },
+
+  { id: "tower", title: "Grimsby’s Tower", blurb: "Beat the raven’s trickiest riddles", scene: "tower", boss: true,
+    intro: [
+      ["Grimsby", "Caw-caw! Welcome to my tower. I’ve hidden the last minutes behind my trickiest time riddles."],
+      ["Pip", "Some riddles go backwards! If you know the finish time, count back to find the start."],
+      ["Grimsby", "Answer all six and I’ll give the minutes back. Not that you can!"],
+    ],
+    make: () => {
+      const [a2, d2] = crossing(1, 25, 140), [a3, d3] = crossing(1, 20, 90);
+      const end1 = rnd(3, 10) * 60 + rnd(2, 20), d4 = rnd(1, 2) * 60 + rnd(25, 55);
+      const end2 = rnd(4, 10) * 60 + rnd(1, 30), d5 = rnd(25, 100);
+      const end3 = rnd(3, 10) * 60 + rnd(1, 25) * 2, d6 = rnd(3, 9) * 5 + 30;
+      return [
+        qRead(rnd(1, 11) * 60 + rnd(31, 59), "Riddle one: “What time does my pocket watch say?”"),
+        qElapsedMC(a2, d2, "Riddle two: “I napped from " + fmt(a2) + " to " + fmt(a2 + d2) + ".”", "was Grimsby’s nap", false),
+        qFinishMC(a3, d3, "Riddle three: “I started polishing my hat at " + fmt(a3) + " and polished for " + dur(d3) + ".”", false),
+        qStartSteps(end1, d4, "Riddle four: “My feast finished at " + fmt(end1) + ". It went for " + dur(d4) + ".”"),
+        qStartMC(end2, d5, "Riddle five: “My flight landed at " + fmt(end2) + ". I flew for " + dur(d5) + ".”"),
+        qSet(end3 - d6, "Riddle six: “My concert ended at " + fmt(end3) + " and lasted " + d6 + " minutes. Set the clock to when it started!”", "Count back, then set the clock."),
+      ];
+    },
+    outro: [
+      ["Grimsby", "Caw… you did it. Fine, here are your minutes. I only took them because I wanted a clock of my own."],
+      ["Mayor Bramble", "Then you shall have one, Grimsby! A shiny new clock for your tower."],
+      ["Pip", "Listen! The clocktower is ticking again! {name}, you saved Tickwick!"],
+    ] },
+];
+
+/* ---------- speech (optional read-aloud) ---------- */
+const canSpeak = "speechSynthesis" in window;
+function speak(text) { if (!canSpeak) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/–|−/g, " minus ")); u.rate = 0.95; speechSynthesis.speak(u); } catch (e) {} }
+const speakBtn = (text) => canSpeak ? `<button class="speak" data-say="${esc(text)}" aria-label="Read aloud">🔊 Read to me</button>` : "";
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-say]"); if (b) speak(b.dataset.say); });
+
+/* ---------- HUD ---------- */
+$("cogIcon").innerHTML = ICON_COG; $("starIcon").innerHTML = ICON_STAR;
+function hud(popCog) { $("cogs").textContent = state.cogs; $("stars").textContent = state.stars; if (popCog) { const p = $("cogs").parentElement; p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop"); } }
+function progress(frac) { if (frac === null) { $("progressBar").hidden = true; return; } $("progressBar").hidden = false; $("progressFill").style.width = Math.round(frac * 100) + "%"; }
+const nameOf = () => state.name || "Time Detective";
+const fill = (s) => s.replace(/\{name\}/g, nameOf());
+
+/* ---------- screens ---------- */
+function setScene(key, arg) { $("scene").innerHTML = SCENES[key](arg); }
+
+function titleScreen() {
+  progress(null); setScene("town", false); hud();
+  $("panel").innerHTML = `
+    <h1 style="font-size:34px">The Clocktower of Tickwick</h1>
+    <p class="line">Grimsby the raven has stolen all the minutes from the town clock. Can you get them back?</p>
+    <div class="namefield"><label for="nm"><b>What’s your detective name?</b></label>
+      <input id="nm" maxlength="20" autocomplete="off" value="${esc(state.name)}" placeholder="Type your first name"></div>
+    <div class="row">${state.done.length ? `<button class="btn ghost" id="reset">Start over</button>` : ""}<button class="btn" id="go">${state.done.length ? "Keep playing" : "Start the adventure"}</button></div>`;
+  $("go").onclick = () => { state.name = $("nm").value.trim().slice(0, 20); save(); mapScreen(); };
+  $("nm").onkeydown = (e) => { if (e.key === "Enter") $("go").click(); };
+  if ($("reset")) $("reset").onclick = () => { state = { name: $("nm").value.trim(), cogs: 0, stars: 0, done: [] }; save(); hud(); mapScreen(); };
+}
+
+function mapScreen() {
+  progress(null); setScene("town", state.done.length === CHAPTERS.length);
+  const items = CHAPTERS.map((c, i) => {
+    const unlocked = i === 0 || state.done.includes(CHAPTERS[i - 1].id), done = state.done.includes(c.id);
+    return `<button class="chapter ${unlocked ? "" : "locked"}" data-ch="${i}" ${unlocked ? "" : 'aria-disabled="true"'}>
+      <span class="num">${i + 1}</span><span><span class="t">${c.title}</span><br><span class="d">${unlocked ? c.blurb : "Finish the chapter before to unlock"}</span></span>
+      ${done ? `<span class="tick">Done ✓</span>` : ""}</button>`;
+  }).join("");
+  $("panel").innerHTML = `<h2 style="font-size:28px; margin-bottom:12px">Hi ${esc(nameOf())}! Choose a chapter</h2><div class="map">${items}</div>
+    <div class="row"><button class="btn ghost small" id="back">Change name</button>${state.done.length === CHAPTERS.length ? `<button class="btn small" id="cert">See my certificate</button>` : ""}</div>`;
+  document.querySelectorAll(".chapter").forEach((b) => b.onclick = () => { if (b.classList.contains("locked")) return; startChapter(+b.dataset.ch); });
+  $("back").onclick = titleScreen;
+  if ($("cert")) $("cert").onclick = certificate;
+}
+
+function dialogue(lines, sceneKey, sceneArg, onDone) {
+  let i = 0; setScene(sceneKey, sceneArg);
+  const show = () => {
+    const [who, raw] = lines[i], text = fill(raw);
+    const portrait = PORTRAITS[who] || PORTRAITS.Narrator;
+    $("panel").innerHTML = `<div class="dialog"><div class="portrait">${portrait}</div><div>
+      <div class="speaker">${who === "Narrator" ? "" : esc(who)}</div><p class="line">${esc(text)}</p></div></div>
+      <div class="row">${speakBtn(text)}<button class="btn" id="next">${i < lines.length - 1 ? "Next" : "Let’s go!"}</button></div>`;
+    $("next").focus({ preventScroll: true });
+    $("next").onclick = () => { if (canSpeak) speechSynthesis.cancel(); i++; i < lines.length ? show() : onDone(); };
+  };
+  show();
+}
+
+let run = null;
+function startChapter(idx) {
+  const ch = CHAPTERS[idx];
+  dialogue(ch.intro, ch.scene, false, () => { run = { idx, qs: ch.make(), q: 0, hp: 0 }; run.hp = run.qs.length; question(); });
+}
+
+function bossBar() {
+  if (!CHAPTERS[run.idx].boss) return "";
+  return `<div class="boss">${PORTRAITS.Grimsby}<div style="flex:1"><b>Grimsby’s riddle power</b><div class="hp"><i style="width:${(run.hp / run.qs.length) * 100}%"></i></div></div></div>`;
+}
+const TAUNTS = ["Caw-caw! Wrong! Try again!", "Ha! Not quite, little detective!", "Ooh, so close. But no!", "My riddles are too tricky for you! …Or are they?"];
+const OUCH = ["Caw! Lucky guess!", "Squawk! How did you know?", "Ruffled my feathers, that did!", "Grr… my riddles are running out!"];
+
+function question() {
+  const ch = CHAPTERS[run.idx], q = run.qs[run.q];
+  progress(run.q / run.qs.length);
+  setScene(ch.scene, false);
+  run.first = true; run.step = 0;
+  if (q.type === "mc") renderMC(q);
+  else if (q.type === "steps") renderSteps(q);
+  else renderSet(q);
+}
+
+function header(q) {
+  const ch = CHAPTERS[run.idx];
+  return `${bossBar()}<p class="context">${ch.title}: question ${run.q + 1} of ${run.qs.length}</p>
+    <p class="prompt">${esc(q.prompt)}</p>${q.context ? `<p class="context">${esc(q.context)}</p>` : ""}`;
+}
+
+function optionsHTML(opts) { return `<div class="options">${opts.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>`; }
+
+function wireOptions(answer, hint, onRight) {
+  document.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+    if (b.dataset.v === answer) {
+      b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); onRight();
+    } else {
+      b.classList.add("wrong"); b.disabled = true; run.first = false;
+      const boss = CHAPTERS[run.idx].boss;
+      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite."}</b> ${esc(hint)}`);
+    }
+  });
+}
+
+function feedback(kind, html) { const f = $("fb"); f.className = "feedback show " + kind; f.innerHTML = html; }
+
+function correct(explain) {
+  state.cogs++; if (run.first) state.stars++; save(); hud(true);
+  const boss = CHAPTERS[run.idx].boss;
+  if (boss) run.hp--;
+  const hp = document.querySelector(".hp i"); if (hp) hp.style.width = (run.hp / run.qs.length) * 100 + "%";
+  feedback("good", `<b>${boss ? esc(pick(OUCH)) : pick(["Brilliant!", "You got it!", "Super sleuthing!", "Correct!"])}</b> ${esc(explain)} ${run.first ? "You earned a cog and a star!" : "You earned a cog!"}`);
+  const row = document.createElement("div"); row.className = "row";
+  row.innerHTML = `<button class="btn" id="cont">${run.q < run.qs.length - 1 ? "Next question" : "Finish chapter"}</button>`;
+  $("panel").appendChild(row); $("cont").focus({ preventScroll: true });
+  $("cont").onclick = () => { run.q++; run.q < run.qs.length ? question() : finishChapter(); };
+}
+
+function renderMC(q) {
+  $("panel").innerHTML = `${header(q)}${q.visual ? `<div class="visual">${q.visual}</div>` : ""}${optionsHTML(q.options)}<div id="fb" class="feedback" aria-live="polite"></div>
+    <div class="row">${speakBtn(q.prompt + ". " + (q.context || ""))}</div>`;
+  wireOptions(q.answer, q.hint, () => correct(q.explain));
+}
+
+function renderSteps(q) {
+  const k = run.step, s = q.steps[k];
+  const list = q.steps.map((st, i) => `<li class="${i < k ? "done" : i === k ? "now" : ""}">${i < k ? "✓ " : (i + 1) + ". "}${esc(i <= k ? st.q : "…")}${i < k ? " <b>" + esc(st.answer) + "</b>" : ""}</li>`).join("");
+  $("panel").innerHTML = `${header(q)}<div class="nl">${q.line(k)}</div><ol class="steps">${list}</ol>${optionsHTML(s.options)}<div id="fb" class="feedback" aria-live="polite"></div>
+    <div class="row">${speakBtn(s.q)}</div>`;
+  wireOptions(s.answer, s.hint, () => {
+    if (k < q.steps.length - 1) {
+      feedback("good", `<b>Yes!</b> ${esc(s.answer)}. On to the next jump…`);
+      setTimeout(() => { run.step++; renderSteps(q); }, 1100);
+    } else {
+      document.querySelector(".nl").innerHTML = q.line(q.steps.length);
+      correct(q.explain);
+    }
+  });
+}
+
+function renderSet(q) {
+  let t = rnd(1, 11) * 60; if (norm(t) === norm(q.target)) t += 60;
+  $("panel").innerHTML = `${header(q)}
+    <div class="setter"><div id="setClock">${clockSVG(t, { id: "sc", label: "Clock you can set" })}</div>
+      <div class="digital" id="dig" aria-live="polite">${fmt(t)}</div>
+      <div class="controls"><span class="label">Move the minute hand</span>
+        <button class="btn ghost small" data-d="-5">−5 min</button><button class="btn ghost small" data-d="-1">−1 min</button>
+        <button class="btn ghost small" data-d="1">+1 min</button><button class="btn ghost small" data-d="5">+5 min</button>
+        <span class="label">Move the hour</span>
+        <button class="btn ghost small" data-d="-60" style="grid-column:span 2">−1 hour</button><button class="btn ghost small" data-d="60" style="grid-column:span 2">+1 hour</button></div>
+    </div>
+    <div id="fb" class="feedback" aria-live="polite"></div>
+    <div class="row">${speakBtn(q.prompt)}<button class="btn" id="check">Check my clock</button></div>`;
+  const draw = () => { $("setClock").innerHTML = clockSVG(t, { id: "sc", label: "Clock showing " + fmt(t) }); $("dig").textContent = fmt(t); bindDrag(); };
+  document.querySelectorAll("[data-d]").forEach((b) => b.onclick = () => { t = norm(t + +b.dataset.d); draw(); });
+  function bindDrag() {
+    const svg = $("setClock").querySelector("svg"); let dragging = false;
+    const at = (e) => {
+      const r = svg.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+      let m = Math.round(((Math.atan2(x, -y) * 180 / Math.PI + 360) % 360) / 6) % 60;
+      const cur = t % 60; let h = Math.floor(norm(t) / 60);
+      if (cur > 45 && m < 15) h++; else if (cur < 15 && m > 45) h--;
+      t = norm(h * 60 + m); draw();
+    };
+    svg.onpointerdown = (e) => { dragging = true; svg.setPointerCapture(e.pointerId); at(e); };
+    svg.onpointermove = (e) => { if (dragging) at(e); };
+    svg.onpointerup = svg.onpointercancel = () => { dragging = false; };
+  }
+  bindDrag();
+  $("check").onclick = () => {
+    if (norm(t) === norm(q.target)) {
+      $("check").remove(); document.querySelectorAll("[data-d]").forEach((b) => b.disabled = true);
+      $("setClock").querySelector("svg").onpointerdown = null;
+      correct(q.explain);
+    } else {
+      run.first = false;
+      const boss = CHAPTERS[run.idx].boss, tm = q.target % 60, cm = t % 60;
+      const tip = hourOf(t) !== hourOf(q.target) && cm === tm ? "The minutes are right, but check the hour." :
+        cm !== tm ? "Check the minute hand. Count in 5s to the big number, then in 1s on the little marks." : "Nearly! Check the hour hand.";
+      feedback("hint", `<b>${boss ? esc(pick(TAUNTS)) : "Not quite yet."}</b> Your clock says ${fmt(t)}. ${tip}`);
+    }
+  };
+}
+
+function finishChapter() {
+  const ch = CHAPTERS[run.idx];
+  if (!state.done.includes(ch.id)) state.done.push(ch.id);
+  save(); progress(1);
+  const last = run.idx === CHAPTERS.length - 1;
+  dialogue(ch.outro, last ? "town" : ch.scene, last, () => last ? certificate() : mapScreen());
+}
+
+function certificate() {
+  progress(null); setScene("town", true);
+  $("panel").innerHTML = `<div class="cert"><p class="context" style="margin:0">The town of Tickwick awards the</p>
+    <h2>Golden Cog Medal</h2><div class="who">${esc(nameOf())}</div>
+    <p class="line">for outsmarting Grimsby the raven and getting the clocktower ticking again.</p>
+    <p style="font-weight:800; font-size:20px; margin-top:12px">${ICON_COG.replace("<svg", '<svg style="width:30px;height:30px;vertical-align:middle"')} ${state.cogs} cogs &nbsp; ${ICON_STAR.replace("<svg", '<svg style="width:30px;height:30px;vertical-align:middle"')} ${state.stars} stars</p></div>
+    <div class="row"><button class="btn ghost" id="map">Back to the map</button><button class="btn" id="again">Play again</button></div>`;
+  $("map").onclick = mapScreen;
+  $("again").onclick = () => { state = { name: state.name, cogs: 0, stars: 0, done: [] }; save(); hud(); mapScreen(); };
+}
+
+hud();
+titleScreen();
+</script>
+</body>
+</html>
