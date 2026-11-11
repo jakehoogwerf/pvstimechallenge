@@ -44,7 +44,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .stat .v{font-family:"Lilita One",Arial,sans-serif; font-size:34px; line-height:1}
 .stat .l{color:var(--muted); font-weight:800; font-size:14px; margin-top:4px}
 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px}
-.skill{display:grid; grid-template-columns:150px 1fr 70px; gap:10px; align-items:center; padding:6px 0}
+.skill{display:grid; grid-template-columns:190px 1fr 70px; gap:10px; align-items:center; padding:6px 0}
 .skill .name{font-weight:800}
 .track{height:16px; background:var(--soft); border-radius:999px; overflow:hidden}
 .track i{display:block; height:100%; border-radius:999px}
@@ -82,8 +82,9 @@ const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
 const CHAPTERS = {
   1: { town: "The Frozen Town", market: "The Market of Lost Minutes", river: "The Tick River Ferry", tower: "Grimsby’s Tower" },
   2: { station: "All Aboard!", junction: "Timetable Trouble", route: "Volcano or Frosty", bridge: "The Lightning Bridge", castle: "Count Cuckoo’s Castle" },
+  3: { boss1: "The Minute Muncher", boss2: "The O’Clock Ogre", boss3: "The Two-Headed Hydra", boss4: "Triclockatops", boss5: "The Clockwork King" },
 };
-const SKILL_ORDER = ["Reading clocks", "Past and to", "Setting clocks", "Elapsed time", "Timetables", "Finish times", "Start times", "Other"];
+const SKILL_ORDER = ["Reading clocks", "Past and to", "Setting clocks", "Elapsed time", "Step 1: Same hour", "Step 2: To the o’clock", "Step 3: Across the o’clock", "Step 4: With whole hours", "Timetables", "Finish times", "Start times", "Other"];
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const mmss = (t) => t == null ? "–" : Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
@@ -130,6 +131,8 @@ const TIPS = {
   "Duration off by one hour": "They lost or added a whole hour, often when the time crossed an o’clock. Model the number line jump to the o’clock.",
   "Duration off by 5 or 10 minutes": "A small counting slip. Check the jump to the o’clock: it’s 60 minus the minutes.",
   "Jump to the o’clock miscounted": "The first jump to the next o’clock is wrong. Practise 60 − minutes (from 9:40, 60 − 40 = 20).",
+  "Took away the hours and minutes separately": "They treated it like an ordinary subtraction (4 − 3 hours, then 40 − 15 minutes). Model the jump to the o’clock on a number line and ask: can it really be more than an hour?",
+  "Counted up to 100 instead of 60": "They treated an hour as 100 minutes. Revisit the big idea: time counts to 60, and practise the friends of 60.",
   "Other": "Mixed errors. Look at these questions one by one below.",
 };
 function mistakeType(r) {
@@ -153,6 +156,14 @@ function mistakeType(r) {
   }
   const dg = parseDur(g), dc = parseDur(c);
   if (dg != null && dc != null) {
+    if (/hour/.test(g) && +((/(\d+) minute/.exec(g) || [0, 0])[1]) >= 60) return "Didn’t swap 60 minutes for 1 hour";
+    const qm = /from (\d{1,2}):(\d{2}) to (\d{1,2}):(\d{2})/.exec(r.question);
+    if (qm) {
+      const m1 = +qm[2], m2 = +qm[4], dh = ((+qm[3] % 12) - (+qm[1] % 12) + 12) % 12, nv = Math.abs(m2 - m1);
+      if (m2 === 0 && dg === 100 - m1) return "Counted up to 100 instead of 60";
+      if (m2 < m1 && m2 > 0 && (dg === nv || dg === dh * 60 + nv)) return "Took away the hours and minutes separately";
+    }
+    if (sk === "Step 2: To the o’clock") return "Jump to the o’clock miscounted";
     if (/Step \d: (Jump (back )?to the o’clock|How many minutes from)/.test(r.question)) return "Jump to the o’clock miscounted";
     const d = dg - dc;
     if (Math.abs(d) === 60) return "Duration off by one hour";
@@ -182,7 +193,7 @@ function render() {
 
   // skills
   const sk = {}; for (const r of R) { const s = sk[r.skill] || (sk[r.skill] = { n: 0, ok: 0 }); s.n++; if (r.is_correct) s.ok++; }
-  const skillHTML = SKILL_ORDER.filter((s) => sk[s]).map((s) => { const p = pct(sk[s].ok, sk[s].n);
+  const skillHTML = [...SKILL_ORDER.filter((s) => sk[s]), ...Object.keys(sk).filter((s) => !SKILL_ORDER.includes(s))].map((s) => { const p = pct(sk[s].ok, sk[s].n);
     return `<div class="skill"><span class="name">${s}</span><span class="track"><i style="width:${p}%; background:${col(p)}"></i></span><span class="pct">${p}%</span><span class="n">${sk[s].n} answers, ${sk[s].n - sk[s].ok} wrong</span></div>`; }).join("") || `<p class="empty">No answers yet for this filter.</p>`;
 
   // mistakes
@@ -210,7 +221,7 @@ function render() {
   studs.sort(sorters[F.sortBy]);
   const chTotal = F.game === "1" ? 4 : F.game === "2" ? 5 : 9;
   const studHTML = studs.length ? `<div class="tablewrap"><table><thead><tr><th class="sort" data-sort="name">Student</th><th class="sort" data-sort="n">Answers</th><th class="sort" data-sort="acc">Accuracy ▲</th><th>Weakest skill</th><th>Chapters done</th><th>Adv. 1 time</th><th>Adv. 2 time</th><th class="sort" data-sort="last">Last played</th></tr></thead><tbody>
-    ${studs.map((s) => `<tr class="click" data-student="${esc(s.k)}"><td><b>${esc(s.name)}</b></td><td>${s.n}</td><td><span class="pill ${lvl(s.acc)}">${s.acc}%</span></td><td>${s.weak ? esc(s.weak[0]) + " (" + s.weak[1] + "%)" : "–"}</td><td>${s.ch} / ${chTotal}</td><td>${mmss(s.j1)}</td><td>${mmss(s.j2)}</td><td>${new Date(s.last).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</td></tr>`).join("")}</tbody></table></div>
+    ${studs.map((s) => `<tr class="click" data-student="${esc(s.k)}"><td><b>${esc(s.name)}</b></td><td>${s.n}</td><td><span class="pill ${lvl(s.acc)}">${s.acc}%</span></td><td>${s.weak ? esc(s.weak[0]) + " (" + s.weak[1] + "%)" : "–"}</td><td>${F.game === "3" ? "–" : s.ch + " / " + chTotal}</td><td>${mmss(s.j1)}</td><td>${mmss(s.j2)}</td><td>${new Date(s.last).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</td></tr>`).join("")}</tbody></table></div>
     <p class="note">Click a student to see only their results. Accuracy = right answers ÷ all tries.</p>` : `<p class="empty">No students yet for this filter.</p>`;
 
   // wrong answers list
@@ -222,7 +233,7 @@ function render() {
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(label)}</option>`;
   $("app").innerHTML = `<div class="top"><h1>Teacher dashboard</h1>
       <div class="filters">
-        <label>Adventure<select id="fg">${opt("all", "Both", F.game)}${opt("1", "1: Clocktower", F.game)}${opt("2", "2: Time Train", F.game)}</select></label>
+        <label>Adventure<select id="fg">${opt("all", "Both", F.game)}${opt("1", "1: Clocktower", F.game)}${opt("2", "2: Time Train", F.game)}${opt("3", "3: Monster Raid", F.game)}</select></label>
         <label>When<select id="fp">${opt("today", "Today", F.period)}${opt("7", "Last 7 days", F.period)}${opt("30", "Last 30 days", F.period)}${opt("all", "All time", F.period)}</select></label>
         <label>Student<select id="fs">${opt("all", "Whole class", F.student)}${names.map(([k, n]) => opt(k, n, F.student)).join("")}</select></label>
         <button class="btn ghost" id="refresh">Refresh</button><button class="btn ghost" id="csv">Download CSV</button><button class="btn" id="lock">Lock</button>

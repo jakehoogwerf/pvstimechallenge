@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tickwick 3: Minute Monster Raid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0E2B2E; --moss:#17494D; --gold:#F2B632; --gold-dark:#B8860F; --ember:#E4572E; --mint:#3FBF8F; --mint-soft:#D8F5E9;
+  --panel:#F3F7F2; --panel-2:#E1EBE4; --ink:#12292B; --muted:#4F6668; --line:#C5D6CC; --bad:#D9415A; --bad-soft:#FCE3E8; --help:#FFD23F;
+  --title:#17494D; --tint:#2E7D4F;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --panel:#173A3D; --panel-2:#21494D; --ink:#EFF7F1; --muted:#B4CBC4; --line:#356066; --mint-soft:#1D5A47; --bad-soft:#4C2236; --title:#9FE8C8; --page:#081C1E; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --panel:#173A3D; --panel-2:#21494D; --ink:#EFF7F1; --muted:#B4CBC4; --line:#356066; --mint-soft:#1D5A47; --bad-soft:#4C2236; --title:#9FE8C8; --page:#081C1E; color-scheme:dark; }
+*,*::before,*::after{box-sizing:inherit}
+html{background:var(--page); scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0; min-height:100%}
+body{background:var(--page); background-image:radial-gradient(ellipse at 50% -10%, #1F5A56 0%, transparent 60%); color:var(--ink); font-family:"Nunito","Trebuchet MS",Arial,sans-serif; font-size:18px; line-height:1.45}
+.app{max-width:820px; margin:0 auto; padding:12px 14px 40px}
+body.big .app{max-width:1280px}
+h1,h2,h3,.display{font-family:"Lilita One","Arial Black",Arial,sans-serif; font-weight:400; letter-spacing:.3px; line-height:1.1; margin:0}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:4px solid var(--gold); outline-offset:3px}
+
+.hud{display:flex; align-items:center; justify-content:space-between; gap:8px; color:#EFF7F1; padding:2px 2px 10px; flex-wrap:wrap}
+.brand{font-family:"Lilita One",Arial,sans-serif; font-size:21px; color:var(--gold)}
+.pills{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+.pill{display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); padding:5px 12px; border-radius:999px; font-weight:900; font-size:16px; color:#EFF7F1; border:none; text-decoration:none}
+.pill[hidden]{display:none}
+.pill b{font-family:"Lilita One",Arial,sans-serif; font-weight:400; letter-spacing:3px; color:var(--gold); font-size:19px}
+
+/* buttons */
+.btn{border:none; border-radius:16px; padding:12px 22px; font-weight:900; font-size:19px; background:var(--gold); color:#2A1C00; box-shadow:0 5px 0 var(--gold-dark); transition:transform .08s}
+.btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--gold-dark)}
+.btn.ghost{background:var(--panel-2); color:var(--ink); box-shadow:0 5px 0 var(--line)}
+.btn.small{padding:8px 14px; font-size:16px}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.row{display:flex; gap:10px; justify-content:flex-end; align-items:center; margin-top:16px; flex-wrap:wrap}
+
+/* stage */
+.stage{position:relative; border-radius:24px 24px 0 0; overflow:hidden; background:linear-gradient(180deg, #0B2226 0%, var(--tint) 130%); box-shadow:0 14px 34px rgba(0,0,0,.4); min-height:300px; transition:background .6s}
+.stage .bg{position:absolute; inset:0; width:100%; height:100%}
+.stage-top{position:relative; padding:14px 16px 0; color:#fff; z-index:2}
+.bossname{font-family:"Lilita One",Arial,sans-serif; font-size:26px; text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.bossstep{font-weight:800; font-size:15px; opacity:.9}
+.hp{position:relative; height:26px; background:rgba(0,0,0,.4); border-radius:999px; overflow:hidden; margin-top:8px; border:3px solid rgba(255,255,255,.85)}
+.hp i{display:block; height:100%; width:100%; background:linear-gradient(90deg,#FF8A5C,var(--ember)); transition:width .9s cubic-bezier(.2,.9,.3,1)}
+.hp span{position:absolute; inset:0; display:grid; place-items:center; font-weight:900; font-size:15px; color:#fff; text-shadow:0 1px 2px #000}
+.meta{display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-weight:900; font-size:15px; gap:10px}
+.charge{display:flex; align-items:center; gap:5px}
+.charge i{width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.25); border:2px solid rgba(255,255,255,.7)}
+.charge i.on{background:var(--help); box-shadow:0 0 10px var(--help)}
+.bosswrap{position:relative; z-index:1; display:grid; place-items:center; padding:4px 0 26px}
+.bosswrap > div{width:min(52%, 300px)}
+.bosswrap svg{width:100%; height:auto; display:block; filter:drop-shadow(0 10px 14px rgba(0,0,0,.35))}
+body.big .bosswrap > div{width:min(46%, 380px)}
+.bob{animation:bob 1.6s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-8px)}}
+.hurt{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:translateX(0); filter:none}20%{transform:translateX(-14px) rotate(-3deg); filter:brightness(2.2) saturate(.4)}50%{transform:translateX(12px) rotate(3deg)}80%{transform:translateX(-6px)}}
+.dead{animation:dead 1.4s forwards}
+@keyframes dead{40%{transform:rotate(-10deg) scale(1.05); filter:grayscale(.6)}100%{transform:translateY(60px) rotate(18deg) scale(.6); opacity:0; filter:grayscale(1)}}
+.fled{animation:fled 1.3s forwards}
+@keyframes fled{100%{transform:translateX(120%) rotate(8deg); opacity:.2}}
+.glow{animation:glow 1.4s ease-in-out infinite alternate}
+@keyframes glow{to{opacity:.4}}
+.spin{transform-box:fill-box; transform-origin:center; animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.twinkle{animation:tw 1.8s ease-in-out infinite alternate}
+@keyframes tw{to{opacity:.2}}
+.fx{position:absolute; inset:0; z-index:3; pointer-events:none}
+.banner{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%) rotate(-4deg); font-family:"Lilita One",Arial,sans-serif; font-size:clamp(30px,7vw,54px); color:#fff; text-shadow:0 4px 0 #12292B, 0 0 24px rgba(242,182,50,.9); white-space:nowrap; animation:bannerIn 1.7s ease-out forwards; line-height:1}
+@keyframes bannerIn{0%{opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(-14deg)}18%{opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(-4deg)}80%{opacity:1}100%{opacity:0; transform:translate(-50%,-80%) scale(1) rotate(-4deg)}}
+.dmg{position:absolute; left:50%; top:66%; font-family:"Lilita One",Arial,sans-serif; font-size:clamp(40px,9vw,72px); color:#FFE37A; text-shadow:0 4px 0 #7A1F0A; animation:dmgUp 1.5s ease-out forwards}
+.dmg.blast{color:#9FF2FF; text-shadow:0 4px 0 #0E4A66}
+@keyframes dmgUp{0%{opacity:0; transform:translate(-50%,0) scale(.4)}20%{opacity:1; transform:translate(-50%,-30px) scale(1.2)}100%{opacity:0; transform:translate(-50%,-130px) scale(1)}}
+.timer{position:absolute; left:0; right:0; bottom:0; height:22px; background:rgba(0,0,0,.45); z-index:2}
+.timer i{display:block; height:100%; width:100%; background:var(--gold); transition:width .25s linear}
+.timer.low i{background:var(--ember)}
+.timer span{position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-weight:900; font-size:14px; text-shadow:0 0 3px #000, 0 1px 3px #000, 0 0 6px #000}
+.codebox{position:relative; z-index:2; text-align:center; color:#fff; padding:26px 16px 30px}
+.codebox p{margin:0; font-weight:800; font-size:18px}
+.code{display:flex; justify-content:center; gap:10px; margin:12px 0}
+.code span{font-family:"Lilita One",Arial,sans-serif; font-size:clamp(44px,11vw,84px); width:1.25em; padding:4px 0; border-radius:16px; background:#fff; color:var(--ink); box-shadow:0 6px 0 rgba(0,0,0,.35)}
+body.big .code span{font-size:clamp(70px,12vw,150px)}
+
+/* team */
+.team{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; background:var(--moss); padding:10px}
+body.big .team{grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; padding:16px}
+.chip{display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.1); color:#fff; border:3px solid transparent; border-radius:14px; padding:5px 8px; font-weight:800; font-size:15px; text-align:left; min-width:0}
+body.big .chip{font-size:22px; padding:8px 12px}
+.chip svg.face{flex:0 0 32px; width:32px; height:32px; border-radius:9px}
+body.big .chip svg.face{flex-basis:48px; width:48px; height:48px}
+.chip .nm{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip .st{flex:0 0 auto; font-size:17px}
+.chip.me{border-color:var(--gold)}
+.chip.done{background:var(--mint); color:#062019}
+.chip.help{background:var(--help); color:#2A1C00; animation:nudge 1s ease-in-out infinite alternate}
+@keyframes nudge{to{transform:translateY(-3px)}}
+.chip:disabled{cursor:default; opacity:1}
+.dots::after{content:"…"; animation:glow 1s infinite alternate}
+
+/* big screen (teacher's projector) */
+body.big #main:has(#stage){display:grid; grid-template-columns:1.2fr 1fr; grid-template-areas:"stage panel" "team panel"; grid-template-rows:auto 1fr; column-gap:18px; align-items:start}
+body.big #stage{grid-area:stage; border-radius:24px 24px 0 0}
+body.big #team{grid-area:team; border-radius:0 0 24px 24px}
+body.big #panel{grid-area:panel; border-radius:24px}
+body.big .bosses{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.big .panel{font-size:26px; padding:28px}
+body.big .big-msg{font-size:46px}
+body.big .context, body.big .note{font-size:24px}
+body.big .tips{font-size:30px}
+body.big .sum .n{font-size:48px}
+body.big .sum .t{font-size:28px}
+body.big .bossname{font-size:40px}
+body.big .bossstep, body.big .meta{font-size:22px}
+body.big .hp{height:38px}
+body.big .hp span{font-size:22px}
+body.big .timer{height:32px}
+body.big .timer span{font-size:20px}
+body.big .bosscard .bn{font-size:20px}
+body.big .bosscard .bs{font-size:16px}
+body.big .codebox p{font-size:28px}
+/* panel */
+.panel{background:var(--panel); border-radius:0 0 24px 24px; padding:20px; box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.home .panel{border-radius:24px}
+.qtop{display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:16px; font-weight:800; margin-bottom:6px}
+.prompt{font-size:24px; font-weight:900; margin:0 0 8px; line-height:1.5}
+.tchip{font-family:"Lilita One",Arial,sans-serif; font-weight:400; font-size:26px; background:#12292B; color:#FFE9A8; padding:1px 12px; border-radius:10px; white-space:nowrap}
+.context{color:var(--muted); font-size:17px; margin:0 0 10px}
+.nl{overflow-x:auto; margin:2px 0 8px}
+.nl svg{width:100%; min-width:380px; height:auto; display:block}
+.count{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 10px; font-weight:900}
+.count span{background:var(--panel-2); border-radius:10px; padding:3px 10px}
+.options{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.opt{border:3px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:18px; padding:14px 10px; font-weight:900; font-size:21px; min-height:64px; transition:transform .1s, border-color .1s}
+.opt:hover:not(:disabled){border-color:var(--gold); transform:translateY(-2px)}
+.opt.wrong{background:var(--bad-soft); border-color:var(--bad); opacity:.7; animation:shake .35s}
+.opt.right{background:var(--mint-soft); border-color:var(--mint)}
+.opt:disabled{cursor:default}
+@keyframes shake{20%{transform:translateX(-7px)}60%{transform:translateX(7px)}}
+.feedback{margin-top:12px; border-radius:16px; padding:12px 16px; font-size:18px; display:none}
+.feedback.show{display:block}
+.feedback.hint{background:var(--bad-soft); border:2px solid var(--bad)}
+.feedback.good{background:var(--mint-soft); border:2px solid var(--mint)}
+.big-msg{font-family:"Lilita One",Arial,sans-serif; font-size:30px; color:var(--title); margin:0 0 4px}
+.sum{display:grid; grid-template-columns:auto 1fr; gap:6px 16px; align-items:center; margin:10px 0}
+.sum .n{font-family:"Lilita One",Arial,sans-serif; font-size:30px; color:var(--ember); text-align:right; white-space:nowrap}
+.sum .t{font-weight:800}
+.helplist{display:grid; gap:8px; margin-top:10px}
+.helprow{display:flex; align-items:center; gap:10px; background:var(--panel-2); border-radius:14px; padding:6px 10px; font-weight:800}
+.helprow svg{width:36px; height:36px; border-radius:10px; flex:0 0 36px}
+.helprow .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.helprow.asked{background:var(--help); color:#2A1C00}
+.stars{font-size:44px; letter-spacing:6px; color:var(--gold); text-shadow:0 3px 0 var(--gold-dark); line-height:1}
+.stars .off{color:var(--line); text-shadow:none}
+
+/* monster picker */
+.bosses{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-top:12px}
+.bosscard{border:4px solid var(--line); background:var(--panel-2); color:var(--ink); border-radius:18px; padding:8px 6px 10px; text-align:center; min-width:0}
+.bosscard svg{width:100%; height:auto; display:block}
+.bosscard .bn{font-family:"Lilita One",Arial,sans-serif; font-size:15px; line-height:1.1; display:block; margin-top:4px}
+.bosscard .bs{font-size:12.5px; font-weight:800; color:var(--muted); display:block; margin-top:3px; line-height:1.2}
+.bosscard .bstar{display:block; color:var(--gold-dark); font-size:15px; letter-spacing:2px; min-height:1.3em}
+.bosscard[aria-pressed="true"]{border-color:var(--gold); background:var(--panel); transform:translateY(-3px)}
+.bosscard:disabled{cursor:default; opacity:.85}
+
+/* home */
+.lineup{display:flex; justify-content:center; align-items:flex-end; gap:0; padding:18px 8px 0}
+.lineup svg{width:19%; max-width:150px; height:auto; margin:0 -1%}
+.lineup svg:nth-child(odd){animation:bob 1.8s ease-in-out infinite alternate}
+.lineup svg:nth-child(even){animation:bob 1.5s ease-in-out .4s infinite alternate}
+.avatars{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin:8px 0 4px}
+.av{border:4px solid transparent; background:var(--panel-2); border-radius:20px; padding:4px}
+.av svg{width:100%; height:auto; display:block; border-radius:14px}
+.av[aria-pressed="true"]{border-color:var(--gold); transform:translateY(-3px)}
+.field{display:flex; flex-direction:column; gap:6px; margin-top:12px; font-weight:900}
+.field input{font-size:21px; padding:10px 14px; border-radius:14px; border:3px solid var(--line); background:var(--panel-2); color:var(--ink); font-weight:800}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px}
+.box{background:var(--panel-2); border-radius:18px; padding:14px}
+.box h3{font-size:21px; margin-bottom:4px}
+.box p{margin:0 0 10px; color:var(--muted); font-size:16px}
+.codein{display:flex; gap:8px}
+.codein input{flex:1; min-width:0; text-transform:uppercase; letter-spacing:6px; text-align:center; font-family:"Lilita One",Arial,sans-serif; font-size:26px; padding:6px; border-radius:14px; border:3px solid var(--line); background:var(--panel); color:var(--ink)}
+.err{color:var(--bad); font-weight:900; min-height:1.4em; margin-top:10px}
+.howto{margin:14px 0 0; padding-left:22px}
+.howto li{margin:4px 0}
+.linkbtn{background:none; border:none; color:var(--muted); font-weight:800; text-decoration:underline; padding:4px; font-size:15px}
+.note{color:var(--muted); font-size:15px; margin:8px 0 0}
+.net{position:fixed; left:50%; bottom:14px; transform:translateX(-50%); background:#12292B; color:#fff; padding:8px 16px; border-radius:999px; font-weight:800; font-size:15px; z-index:40}
+.net[hidden]{display:none}
+
+/* coach sheet */
+.modal{position:fixed; inset:0; background:rgba(6,20,22,.72); z-index:30; display:grid; place-items:center; padding:16px; overflow:auto}
+.modal[hidden]{display:none}
+.sheet{background:var(--panel); border-radius:24px; padding:22px; max-width:640px; width:100%; border:4px solid var(--help)}
+.tips{margin:8px 0 0; padding-left:24px; font-weight:800}
+.tips li{margin:6px 0}
+
+.confetti{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:20}
+.confetti i{position:absolute; width:10px; height:14px; border-radius:2px; animation:fall 1.4s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg); opacity:.7}}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .options{grid-template-columns:1fr}
+  .bosses{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .avatars{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .two{grid-template-columns:1fr}
+  .prompt{font-size:21px}
+  .tchip{font-size:22px}
+  .bossname{font-size:21px}
+}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <div class="brand">Tickwick 3: Monster Raid</div>
+    <div class="pills">
+      <span class="pill" id="codePill" hidden>Team code <b id="codeTxt"></b></span>
+      <button class="pill" id="sound" aria-label="Sound on or off"></button>
+      <button class="pill" id="leave" hidden>Leave team</button>
+      <a class="pill" id="menu" href="index.html">All games</a>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+<div class="modal" id="coach" hidden></div>
+<div class="net" id="net" hidden>Reconnecting…</div>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+/* ================= setup ================= */
+const SUPABASE_URL = "https://awxmgiindzlwtgoxtxdt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_9YTsc1bf-_IZKj-KdmQVfg_uOhr997p";
+const GAME_NO = 3, MAX_ROUNDS = 12;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const norm = (t) => ((t % 720) + 720) % 720;
+const hourOf = (t) => Math.floor(norm(t) / 60) || 12;
+const fmt = (t) => hourOf(t) + ":" + String(norm(t) % 60).padStart(2, "0");
+function dur(d) { const h = Math.floor(d / 60), m = d % 60, out = []; if (h) out.push(h + " hour" + (h > 1 ? "s" : "")); if (m || !h) out.push(m + " minute" + (m === 1 ? "" : "s")); return out.join(" "); }
+function shortDur(d) { const h = Math.floor(d / 60), m = d % 60; return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim(); }
+
+const SAVE_KEY = "tickwick3-save-v1";
+let save = { name: "", hero: "fox", sound: true, code: "", key: "", role: "" };
+try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || "{}")); } catch (e) {}
+const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+
+/* ================= sound ================= */
+let actx = null;
+function tone(freq, d = 0.15, type = "sine", when = 0, vol = 0.07) {
+  if (!save.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + when;
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch (e) {}
+}
+const SFX = {
+  right: () => { tone(660, .12, "triangle"); tone(990, .2, "triangle", .1); },
+  wrong: () => { tone(220, .22, "square", 0, .035); tone(180, .25, "square", .12, .035); },
+  hit: () => { tone(150, .2, "sawtooth", 0, .07); tone(95, .32, "sawtooth", .08, .06); },
+  combo: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, "triangle", i * .08)),
+  blast: () => [1047, 784, 1319, 1568].forEach((f, i) => tone(f, .25, "sine", i * .1, .06)),
+  win: () => [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, .22, "triangle", i * .13)),
+  start: () => { tone(392, .2, "triangle"); tone(523, .2, "triangle", .15); tone(784, .35, "triangle", .3); },
+  click: () => tone(520, .05, "sine", 0, .04),
+};
+function drawSound() { $("sound").textContent = save.sound ? "🔊" : "🔇"; $("sound").setAttribute("aria-pressed", save.sound ? "true" : "false"); }
+$("sound").onclick = () => { save.sound = !save.sound; persist(); drawSound(); SFX.click(); };
+drawSound();
+
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(n = 60) {
+  if (reduceMotion) return;
+  const cols = ["#F2B632", "#E4572E", "#3FBF8F", "#7FB3FF", "#C58AF9", "#FFFFFF"];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("i");
+    p.style.left = Math.random() * 100 + "vw"; p.style.top = -20 - Math.random() * 80 + "px";
+    p.style.background = pick(cols); p.style.animationDelay = Math.random() * .3 + "s"; p.style.animationDuration = 1 + Math.random() * .8 + "s";
+    $("confetti").appendChild(p); setTimeout(() => p.remove(), 2400);
+  }
+}
+
+/* ================= art ================= */
+const CAP = `<path d="M22 26 Q50 6 78 26 L74 32 Q50 22 26 32 Z" fill="#221C45"/><rect x="20" y="30" width="60" height="7" rx="3.5" fill="#221C45"/><circle cx="50" cy="20" r="4.5" fill="#E8B13B"/>`;
+const eyes = (y = 52, gap = 12, r = 5) => `<circle cx="${50 - gap}" cy="${y}" r="${r}" fill="#221C45"/><circle cx="${50 + gap}" cy="${y}" r="${r}" fill="#221C45"/><circle cx="${51 - gap}" cy="${y - 2}" r="1.8" fill="#fff"/><circle cx="${51 + gap}" cy="${y - 2}" r="1.8" fill="#fff"/>`;
+const HEROES = {
+  fox: { name: "Fox", need: 0, bg: "#FFE3C2", art: `<path d="M18 46 L24 14 L42 34 Z" fill="#E8742A"/><path d="M82 46 L76 14 L58 34 Z" fill="#E8742A"/><path d="M16 46 Q50 22 84 46 Q80 80 50 88 Q20 80 16 46Z" fill="#F08A3C"/><path d="M28 62 Q50 92 72 62 Q50 74 28 62Z" fill="#FFF6EC"/>${eyes(54, 13)}<circle cx="50" cy="68" r="4.5" fill="#221C45"/>` },
+  bunny: { name: "Bunny", need: 0, bg: "#E3EEFF", art: `<ellipse cx="36" cy="18" rx="8" ry="22" fill="#D8D8E6"/><ellipse cx="64" cy="18" rx="8" ry="22" fill="#D8D8E6"/><ellipse cx="36" cy="18" rx="4" ry="15" fill="#F4B6C2"/><ellipse cx="64" cy="18" rx="4" ry="15" fill="#F4B6C2"/><ellipse cx="50" cy="60" rx="30" ry="28" fill="#ECECF5"/>${eyes(56, 12)}<path d="M46 66 h8 l-4 4z" fill="#F28AA0"/><path d="M44 74 q6 4 12 0" stroke="#221C45" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+  frog: { name: "Frog", need: 0, bg: "#DDF6D8", art: `<ellipse cx="50" cy="64" rx="34" ry="24" fill="#4FBF5C"/><circle cx="32" cy="44" r="13" fill="#4FBF5C"/><circle cx="68" cy="44" r="13" fill="#4FBF5C"/><circle cx="32" cy="44" r="8" fill="#fff"/><circle cx="68" cy="44" r="8" fill="#fff"/><circle cx="33" cy="45" r="4.5" fill="#221C45"/><circle cx="67" cy="45" r="4.5" fill="#221C45"/><path d="M32 70 Q50 84 68 70" stroke="#1D6B2A" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="26" cy="64" r="4" fill="#F28AA0" opacity=".6"/><circle cx="74" cy="64" r="4" fill="#F28AA0" opacity=".6"/>` },
+  owl: { name: "Owl", need: 0, bg: "#F1E3D3", art: `<path d="M20 34 L28 20 L38 32Z M80 34 L72 20 L62 32Z" fill="#8A5A3B"/><ellipse cx="50" cy="58" rx="32" ry="32" fill="#A9714B"/><ellipse cx="50" cy="70" rx="18" ry="16" fill="#E8C9A6"/><circle cx="36" cy="50" r="12" fill="#fff"/><circle cx="64" cy="50" r="12" fill="#fff"/><circle cx="36" cy="51" r="6" fill="#221C45"/><circle cx="64" cy="51" r="6" fill="#221C45"/><path d="M45 60 L50 70 L55 60Z" fill="#E8B13B"/>` },
+  dragon: { name: "Dragon", need: 20, bg: "#D8F3F1", art: `<path d="M26 32 L20 12 L36 26Z M74 32 L80 12 L64 26Z" fill="#F2C94C"/><ellipse cx="50" cy="58" rx="32" ry="30" fill="#2EA59A"/><ellipse cx="50" cy="72" rx="20" ry="13" fill="#9EE3D7"/>${eyes(52, 13)}<circle cx="43" cy="72" r="2.5" fill="#1B5E57"/><circle cx="57" cy="72" r="2.5" fill="#1B5E57"/><path d="M84 66 q10 -4 12 -14 q-6 4 -12 2z" fill="#FF8A3D" class="glow"/>` },
+  robot: { name: "Robot", need: 45, bg: "#E6E6F2", art: `<line x1="50" y1="8" x2="50" y2="24" stroke="#7C7C96" stroke-width="4"/><circle cx="50" cy="8" r="5" fill="#E5484D" class="glow"/><rect x="18" y="26" width="64" height="58" rx="14" fill="#B9BCD0"/><rect x="26" y="38" width="48" height="26" rx="8" fill="#221C45"/><circle cx="40" cy="51" r="6" fill="#7FE7FF"/><circle cx="60" cy="51" r="6" fill="#7FE7FF"/><rect x="36" y="70" width="28" height="6" rx="3" fill="#7C7C96"/><rect x="10" y="46" width="8" height="18" rx="3" fill="#7C7C96"/><rect x="82" y="46" width="8" height="18" rx="3" fill="#7C7C96"/>` },
+};
+const heroSVG = (k, cls = "") => { const h = HEROES[k] || HEROES.fox; return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="${h.bg}"/>${h.art}${k === "robot" ? "" : CAP.replace(/(\d+)/g, (m) => m)}</svg>`; };
+const ticks = (r1, r2, w = 3, col = "#12292B") => Array.from({ length: 12 }, (_, i) => { const a = i * 30 * Math.PI / 180; return `<line x1="${r1 * Math.sin(a)}" y1="${-r1 * Math.cos(a)}" x2="${r2 * Math.sin(a)}" y2="${-r2 * Math.cos(a)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`; }).join("");
+const COG = `<path fill="#F2B632" stroke="#B8860F" stroke-width="2" d="M17 2h6l1 5 4 2 4-3 4 4-3 4 2 4 5 1v6l-5 1-2 4 3 4-4 4-4-3-4 2-1 5h-6l-1-5-4-2-4 3-4-4 3-4-2-4-5-1v-6l5-1 2-4-3-4 4-4 4 3 4-2z"/><circle cx="20" cy="20" r="6" fill="#12292B"/>`;
+const SHADOW = `<ellipse cx="150" cy="243" rx="110" ry="12" fill="#000" opacity=".25"/>`;
+const BOSS_ART = {
+  1: `${SHADOW}<path d="M38 222 Q26 118 88 78 Q150 40 212 78 Q274 118 262 222 Q150 250 38 222Z" fill="#5FCF6B"/><path d="M38 222 Q150 250 262 222 Q256 238 150 242 Q44 238 38 222Z" fill="#3A9D4F"/>
+    <ellipse cx="100" cy="98" rx="24" ry="11" fill="#fff" opacity=".35" transform="rotate(-28 100 98)"/>
+    <circle cx="112" cy="130" r="24" fill="#fff"/><circle cx="188" cy="130" r="24" fill="#fff"/><circle cx="118" cy="136" r="11" fill="#12292B"/><circle cx="182" cy="136" r="11" fill="#12292B"/>
+    <path d="M84 104 L134 114 M216 104 L166 114" stroke="#2C7A3D" stroke-width="8" stroke-linecap="round"/>
+    <path d="M92 178 Q150 234 208 178 Q150 194 92 178Z" fill="#7A1F3A"/><path d="M108 183 l9 14 l9 -11z M141 189 l9 14 l9 -14z M174 186 l9 12 l9 -14z" fill="#fff"/>
+    <text x="62" y="208" font-family="Lilita One, Arial" font-size="20" fill="#2C7A3D" opacity=".75">5</text><text x="216" y="204" font-family="Lilita One, Arial" font-size="20" fill="#2C7A3D" opacity=".75">10</text>
+    <g transform="translate(150 60)"><circle r="20" fill="#FFF6D8" stroke="#2C7A3D" stroke-width="5"/><path d="M0 0 V-11 M0 0 L8 5" stroke="#12292B" stroke-width="3.5" stroke-linecap="round"/></g>`,
+  2: `${SHADOW}<rect x="66" y="128" width="168" height="112" rx="48" fill="#C96F1E"/><ellipse cx="146" cy="198" rx="50" ry="34" fill="#F2B56B"/><ellipse cx="60" cy="178" rx="22" ry="36" fill="#C96F1E"/>
+    <path d="M96 62 Q70 12 104 26 Q108 46 118 56Z" fill="#FFF3D6"/><path d="M204 62 Q230 12 196 26 Q192 46 182 56Z" fill="#FFF3D6"/>
+    <ellipse cx="150" cy="98" rx="72" ry="60" fill="#E8933A"/><ellipse cx="78" cy="98" rx="12" ry="18" fill="#E8933A"/><ellipse cx="222" cy="98" rx="12" ry="18" fill="#E8933A"/>
+    <circle cx="124" cy="92" r="15" fill="#fff"/><circle cx="176" cy="92" r="15" fill="#fff"/><circle cx="127" cy="95" r="7" fill="#12292B"/><circle cx="173" cy="95" r="7" fill="#12292B"/>
+    <path d="M102 70 L140 82 M198 70 L160 82" stroke="#7A3F0C" stroke-width="8" stroke-linecap="round"/>
+    <path d="M112 128 Q150 146 188 128" stroke="#7A3F0C" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M120 131 l7 -22 l9 20z M180 131 l-7 -22 l-9 20z" fill="#fff"/>
+    <g transform="translate(232 186)"><circle r="42" fill="#FFF6D8" stroke="#7A3F0C" stroke-width="7"/>${ticks(28, 35)}<path d="M0 0 V-25" stroke="#12292B" stroke-width="5" stroke-linecap="round"/><path d="M0 0 L-13 10" stroke="#12292B" stroke-width="7" stroke-linecap="round"/><circle r="4.5" fill="#12292B"/></g>`,
+  3: `${SHADOW}<path d="M228 196 Q292 196 280 150 Q266 184 222 180Z" fill="#178A98"/><ellipse cx="150" cy="202" rx="88" ry="42" fill="#1E9AA8"/><ellipse cx="150" cy="216" rx="56" ry="22" fill="#8FE0E8"/>
+    <path d="M118 188 Q76 132 92 80" stroke="#1E9AA8" stroke-width="38" fill="none" stroke-linecap="round"/><path d="M182 188 Q224 132 208 80" stroke="#1E9AA8" stroke-width="38" fill="none" stroke-linecap="round"/>
+    <path d="M66 40 l8 -18 l10 16z M222 40 l8 -18 l-18 16z" fill="#FFF3D6"/>
+    <ellipse cx="88" cy="62" rx="42" ry="31" fill="#25B3C2"/><ellipse cx="212" cy="62" rx="42" ry="31" fill="#25B3C2"/>
+    <circle cx="73" cy="56" r="10" fill="#fff"/><circle cx="103" cy="56" r="10" fill="#fff"/><circle cx="75" cy="58" r="4.5" fill="#12292B"/><circle cx="101" cy="58" r="4.5" fill="#12292B"/>
+    <circle cx="197" cy="56" r="10" fill="#fff"/><circle cx="227" cy="56" r="10" fill="#fff"/><circle cx="199" cy="58" r="4.5" fill="#12292B"/><circle cx="225" cy="58" r="4.5" fill="#12292B"/>
+    <path d="M62 42 L84 48 M114 42 L92 48 M186 42 L208 48 M238 42 L216 48" stroke="#0E5660" stroke-width="5" stroke-linecap="round"/>
+    <path d="M70 78 Q88 90 106 78 M194 78 Q212 90 230 78" stroke="#0E5660" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="96" cy="132" r="15" fill="#F2B632"/><text x="96" y="139" text-anchor="middle" font-family="Lilita One, Arial" font-size="20" fill="#12292B">1</text>
+    <circle cx="204" cy="132" r="15" fill="#F2B632"/><text x="204" y="139" text-anchor="middle" font-family="Lilita One, Arial" font-size="20" fill="#12292B">2</text>`,
+  4: `${SHADOW}<path d="M34 164 Q28 26 150 26 Q272 26 266 164 Q150 130 34 164Z" fill="#7A4CC2"/><path d="M58 148 Q58 50 150 50 Q242 50 242 148 Q150 120 58 148Z" fill="#9C72DC"/>
+    ${[-70, -42, -14, 14, 42, 70].map((a) => { const r = a * Math.PI / 180; return `<circle cx="${150 + 106 * Math.sin(r)}" cy="${150 - 106 * Math.cos(r)}" r="6" fill="#FFF3D6"/>`; }).join("")}
+    <ellipse cx="150" cy="174" rx="82" ry="64" fill="#B08CE6"/>
+    <path d="M104 128 Q86 58 108 44 Q120 92 130 122Z" fill="#FFF3D6"/><path d="M196 128 Q214 58 192 44 Q180 92 170 122Z" fill="#FFF3D6"/><path d="M135 200 Q150 146 165 200Z" fill="#FFF3D6"/>
+    <circle cx="112" cy="164" r="14" fill="#fff"/><circle cx="188" cy="164" r="14" fill="#fff"/><circle cx="115" cy="167" r="6.5" fill="#12292B"/><circle cx="185" cy="167" r="6.5" fill="#12292B"/>
+    <path d="M94 144 L128 154 M206 144 L172 154" stroke="#4B2A86" stroke-width="7" stroke-linecap="round"/>
+    <path d="M110 214 Q150 250 190 214 Q150 226 110 214Z" fill="#5B3596"/><circle cx="92" cy="194" r="8" fill="#F28AA0" opacity=".5"/><circle cx="208" cy="194" r="8" fill="#F28AA0" opacity=".5"/>`,
+  5: `${SHADOW}<rect x="42" y="158" width="28" height="64" rx="14" fill="#7C7F99"/><rect x="230" y="158" width="28" height="64" rx="14" fill="#7C7F99"/>
+    <path d="M96 62 L104 20 L126 48 L150 10 L174 48 L196 20 L204 62Z" fill="#F2B632"/><circle cx="150" cy="30" r="6" fill="#E4572E"/><circle cx="107" cy="38" r="4" fill="#7BE0B5"/><circle cx="193" cy="38" r="4" fill="#7BE0B5"/>
+    <rect x="90" y="58" width="120" height="80" rx="18" fill="#C9CCDA"/><rect x="104" y="74" width="92" height="32" rx="10" fill="#12292B"/>
+    <circle cx="128" cy="90" r="9" fill="#FFD23F" class="glow"/><circle cx="172" cy="90" r="9" fill="#FFD23F" class="glow"/>
+    <path d="M124 122 h52 M134 116 v12 M150 116 v12 M166 116 v12" stroke="#6C6F87" stroke-width="5" stroke-linecap="round"/>
+    <rect x="70" y="140" width="160" height="98" rx="24" fill="#9A9DB5"/>
+    <g transform="translate(150 190)"><circle r="36" fill="#FFF6D8" stroke="#F2B632" stroke-width="7"/>${ticks(23, 30)}<path d="M0 0 V-21" stroke="#12292B" stroke-width="4.5" stroke-linecap="round"/><path d="M0 0 L13 8" stroke="#12292B" stroke-width="6" stroke-linecap="round"/><circle r="4" fill="#E4572E"/></g>
+    <g transform="translate(46 122)"><g class="spin">${COG}</g></g><g transform="translate(214 122)"><g class="spin">${COG}</g></g>`,
+};
+const bossSVG = (n, cls = "") => `<svg class="${cls}" viewBox="0 0 300 260" role="img" aria-label="${esc(BOSSES[n].name)}">${BOSS_ART[n]}</svg>`;
+const BOSSES = [null,
+  { name: "The Minute Muncher", step: "Step 1: Same hour", tint: "#2E7D4F", how: ["Both times are in the same hour.", "Count on from the start minutes to the finish minutes."] },
+  { name: "The O’Clock Ogre", step: "Step 2: Jump to the o’clock", tint: "#9A5516", how: ["How many minutes until the next o’clock?", "Use your friends of 60: 60 take away the minutes."] },
+  { name: "The Two-Headed Hydra", step: "Step 3: Two jumps", tint: "#14707C", how: ["Jump 1: to the next o’clock.", "Jump 2: on to the finish time.", "Add your two jumps."] },
+  { name: "Triclockatops", step: "Step 4: Three jumps", tint: "#5B3596", how: ["Jump 1: to the next o’clock.", "Jump 2: the whole hours.", "Jump 3: the leftover minutes.", "Add them up. Swap 60 minutes for 1 hour."] },
+  { name: "The Clockwork King", step: "Final battle: everything", tint: "#6C5A1E", how: ["Draw a number line.", "Jump to the o’clock, then the hours, then the leftover minutes.", "Finding a finish time? Add on to the o’clock first."] },
+];
+const STAGE_BG = `<svg class="bg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  ${Array.from({ length: 26 }, (_, i) => `<circle class="${i % 3 ? "" : "twinkle"}" style="animation-delay:${(i % 5) * .3}s" cx="${(i * 97 + 31) % 800}" cy="${(i * 53 + 17) % 190}" r="${i % 3 ? 1.5 : 2.4}" fill="#FFF6D8"/>`).join("")}
+  ${[30, 110, 690, 760].map((x, i) => `<path d="M${x} 400 V${250 - (i % 2) * 30} l-34 60 h20 l-30 50 h88 l-30 -50 h20z" fill="#061719" opacity=".55"/>`).join("")}
+  <path d="M0 360 Q200 320 400 350 T800 340 V400 H0Z" fill="#061719" opacity=".6"/></svg>`;
+
+function numberLine(stops, jumps, level) {
+  const W = 640, H = 160, X0 = 56, X1 = 584, Y = 112, n = stops.length - 1, xs = stops.map((_, i) => X0 + (X1 - X0) * i / n);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Number line from ${stops[0]} to ${stops[n]}"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#B8860F"/></marker></defs>`;
+  s += `<line x1="${X0 - 24}" y1="${Y}" x2="${X1 + 24}" y2="${Y}" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+  xs.forEach((x, i) => {
+    s += `<line x1="${x}" y1="${Y - 11}" x2="${x}" y2="${Y + 11}" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>`;
+    s += `<text x="${x}" y="${Y + 40}" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="23" fill="var(--ink)">${stops[i]}</text>`;
+  });
+  jumps.forEach((lbl, i) => {
+    const a = xs[i] + 8, b = xs[i + 1] - 8, shown = i < level;
+    s += `<path d="M${a},${Y - 14} C${a},${Y - 80} ${b},${Y - 80} ${b},${Y - 16}" fill="none" stroke="${shown ? "#B8860F" : "var(--muted)"}" stroke-width="5" ${shown ? "" : 'stroke-dasharray="8 7"'} marker-end="url(#ar)"/>`;
+    s += `<text x="${(xs[i] + xs[i + 1]) / 2}" y="${Y - 78}" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="900" font-size="22" fill="${shown ? "var(--ink)" : "var(--muted)"}">${shown ? lbl : "?"}</text>`;
+  });
+  return s + `</svg>`;
+}
+
+/* ================= questions (the same room, round and player always get the same question) ================= */
+function mix(a, b, c, d) { let h = (a ^ Math.imul(b + 1, 374761393) ^ Math.imul(c + 1, 668265263) ^ Math.imul(d + 1, 2246822519)) >>> 0; h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^ (h >>> 16)) >>> 0; }
+function rng(seed) { let t = seed >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0; let x = Math.imul(t ^ (t >>> 15), 1 | t); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
+const SKILLS = { 1: "Step 1: Same hour", 2: "Step 2: To the o’clock", 3: "Step 3: Across the o’clock", 4: "Step 4: With whole hours", 5: "Finish times" };
+const COACH = {
+  1: ["Are both times in the same hour?", "Count on from the start minutes to the finish minutes."],
+  2: ["Where is the long hand now?", "How many minutes until it gets back to the 12? Think: friends of 60."],
+  3: ["What is the next o’clock after the start time?", "How many minutes to get there?", "How many more minutes to the finish? Now add the two jumps."],
+  4: ["Jump to the next o’clock first. How many minutes?", "How many whole hours to the last o’clock?", "How many leftover minutes?", "Add the minutes. More than 60? Swap 60 for 1 hour."],
+  5: ["Jump to the next o’clock. How many minutes does that use up?", "How many minutes are left to add on?"],
+};
+function makeQuestion(st, slot) {
+  const R = rng(mix(st.seed, st.boss, st.round, 9999)), r = rng(mix(st.seed, st.boss, st.round, slot));
+  const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+  const fine = st.boss === 5 || (st.round >= 4 && R() < 0.5);
+  const kind = st.boss < 5 ? st.boss : [3, 4, 5, 4, 3, 5][Math.floor(R() * 6)];
+  let a, b, d, answer, cands, line, hint, count = null, prompt;
+  const mins = (x) => x + " minute" + (x === 1 ? "" : "s");
+  if (kind === 1) {
+    const h = ri(1, 12), m1 = fine ? ri(1, 30) : 5 * ri(0, 7); d = fine ? ri(6, 58 - m1) : 5 * ri(2, (55 - m1) / 5);
+    a = h * 60 + m1; b = a + d; answer = mins(d);
+    cands = fine ? [d + 10, d - 10, d + 1, d - 1, d + 5] : [d + 5, d - 5, m1 + d, d + 10, d - 10];
+    cands = cands.filter((x) => x > 0 && x < 60).map(mins);
+    line = { stops: [fmt(a), fmt(b)], jumps: ["+" + d + " min"], max: 0 };
+    hint = "Both times are in the same hour. Count on from " + m1 + " minutes to " + (m1 + d) + " minutes.";
+    if (!fine) count = Array.from({ length: d / 5 + 1 }, (_, i) => m1 + i * 5);
+  } else if (kind === 2) {
+    const h = ri(1, 11); let m = fine ? ri(11, 49) : 5 * ri(1, 11); if (fine && m % 5 === 0) m += 2;
+    a = h * 60 + m; b = (h + 1) * 60; d = 60 - m; answer = mins(d);
+    cands = [100 - m, m, d + 5, d - 5, d + 10, d - 10].filter((x) => x > 0 && x < 100 && x !== d).map(mins);
+    line = { stops: [fmt(a), fmt(b)], jumps: ["+" + d + " min"], max: 0 };
+    hint = "How many minutes from " + m + " up to 60? " + (fine ? "Work out 60 − " + m + "." : "Find the friend of " + m + ".");
+    if (!fine) count = Array.from({ length: d / 5 + 1 }, (_, i) => m + i * 5);
+  } else if (kind === 3) {
+    const h = ri(1, 10), m1 = fine ? ri(31, 56) : 5 * ri(6, 11), to = 60 - m1, rest = fine ? ri(3, 56 - to) : 5 * ri(1, (55 - to) / 5);
+    d = to + rest; a = h * 60 + m1; b = a + d; answer = mins(d);
+    const nv = Math.abs(rest - m1);
+    cands = (nv > 0 ? ["1 hour " + mins(nv), mins(nv)] : []).concat([d + 10, d - 10, d + 5, d - 5].filter((x) => x > 0).map(dur));
+    line = { stops: [fmt(a), fmt(a + to), fmt(b)], jumps: ["+" + to + " min", "+" + rest + " min"], max: 2 };
+    hint = "Jump to " + fmt(a + to) + " first. Then jump on to " + fmt(b) + ". Add your two jumps.";
+  } else if (kind === 4) {
+    const h = ri(1, 8), m1 = fine ? ri(6, 54) : 5 * ri(1, 11), H = ri(1, 2), m2 = fine ? ri(4, 56) : 5 * ri(1, 11), to = 60 - m1;
+    a = h * 60 + m1; b = (h + 1 + H) * 60 + m2; d = to + 60 * H + m2; answer = dur(d);
+    cands = [dur((H + 1) * 60 + Math.abs(m2 - m1))];
+    if (to + m2 >= 60) cands.push(H + " hour" + (H > 1 ? "s " : " ") + (to + m2) + " minutes");
+    cands.push(dur(d - 60), dur(d + 60), dur(d + 10), dur(d - 10));
+    line = { stops: [fmt(a), fmt(a + to), fmt(a + to + 60 * H), fmt(b)], jumps: ["+" + to + " min", "+" + H + " h", "+" + m2 + " min"], max: 3 };
+    hint = "Three jumps: to " + fmt(a + to) + ", the whole hours to " + fmt(a + to + 60 * H) + ", then on to " + fmt(b) + ". Add the minutes, and swap 60 minutes for 1 hour.";
+  } else {
+    const h = ri(1, 9), m1 = ri(21, 56), to = 60 - m1, rest = ri(4, 50), extra = r() < 0.3 ? 60 : 0;
+    d = to + rest + extra; a = h * 60 + m1; b = a + d; answer = fmt(b);
+    cands = [hourOf(a) + Math.floor(d / 60) + ":" + String(m1 + (d % 60)).padStart(2, "0"), fmt(b + 60), fmt(b - 60), fmt(b + 10), fmt(b - 10), fmt(b + 5)];
+    line = { stops: [fmt(a), fmt(a + to), "?"], jumps: ["+" + to + " min", "+" + shortDur(d - to)], max: 2 };
+    hint = "Jump to " + fmt(a + to) + " first: that uses " + to + " minutes. Then add the " + shortDur(d - to) + " that are left.";
+    prompt = `A battle starts at <span class="tchip">${fmt(a)}</span> and lasts <b>${dur(d)}</b>. What time does it end?`;
+  }
+  const opts = [answer];
+  for (const c of cands) { if (opts.length >= 4) break; if (!opts.includes(c)) opts.push(c); }
+  for (let k = 15; opts.length < 4; k += 5) { const c = kind === 5 ? fmt(b + k) : dur(d + k); if (!opts.includes(c)) opts.push(c); }
+  for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+  prompt = prompt || `How long from <span class="tchip">${fmt(a)}</span> to <span class="tchip">${fmt(b)}</span>?`;
+  const plain = kind === 5 ? "A battle starts at " + fmt(a) + " and lasts " + dur(d) + ". What time does it end?" : "How long from " + fmt(a) + " to " + fmt(b) + "?";
+  return { kind, fine, prompt, plain, answer, options: opts, line, hint, count };
+}
+
+/* ================= talking to the game server ================= */
+async function rpc(fn, args) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(args) });
+  if (!res.ok) throw new Error(fn + " " + res.status);
+  return res.json();
+}
+function logAnswer(q, given, ok) {
+  try {
+    const row = { game: GAME_NO, chapter: "boss" + S.st.boss, player: (save.name.trim() || "(no name)").slice(0, 20), skill: SKILLS[q.kind], question: q.plain.slice(0, 300), correct_answer: q.answer.slice(0, 60), given_answer: String(given).slice(0, 60), is_correct: !!ok };
+    fetch(SUPABASE_URL + "/rest/v1/answer_log", { method: "POST", keepalive: true, headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(row) }).catch(() => {});
+  } catch (e) {}
+}
+
+/* ================= state ================= */
+const S = { st: null, key: "", seq: 0, applied: 0, timer: null, fails: 0, leftAt: 0, my: null, q: null, pickBoss: 0, canStart: null, coachSlot: null, hits: 0 };
+const isHost = () => save.role === "host";
+const me = () => S.st && S.st.players.find((p) => p.slot === S.st.you);
+const leader = (st) => st.players.length ? st.players.reduce((a, b) => (a.slot < b.slot ? a : b)) : null;
+const canStart = (st) => st.host || (!st.hosted && st.you != null && leader(st) && leader(st).slot === st.you);
+
+/* ================= home ================= */
+function home(msg = "") {
+  stopPolling(); S.st = null; S.key = ""; document.body.classList.remove("big");
+  $("codePill").hidden = true; $("leave").hidden = true; $("coach").hidden = true;
+  const avs = Object.keys(HEROES).map((k) => `<button class="av" data-hero="${k}" aria-pressed="${save.hero === k}" aria-label="${HEROES[k].name}">${heroSVG(k)}</button>`).join("");
+  $("main").innerHTML = `<div class="home">
+    <div class="stage" style="min-height:0; border-radius:24px 24px 0 0">${STAGE_BG}<div class="lineup" style="position:relative; z-index:1">${[1, 2, 3, 4, 5].map((n) => bossSVG(n)).join("")}</div></div>
+    <div class="panel" style="border-radius:0 0 24px 24px">
+      <h1 style="font-size:40px; color:var(--title)">Minute Monster Raid</h1>
+      <p style="margin:6px 0 0; font-size:20px">Loose minutes have grown into monsters, and no hero can beat them alone. Team up, help each other and hit together for double damage!</p>
+      <label class="field" for="nm">Your name<input id="nm" maxlength="20" autocomplete="off" value="${esc(save.name)}" placeholder="Type your first name"></label>
+      <p style="font-weight:900; margin:14px 0 0">Choose your hero</p><div class="avatars">${avs}</div>
+      <div class="two">
+        <div class="box"><h3>Join a team</h3><p>Type the 4-letter code from your teacher or team leader.</p>
+          <div class="codein"><input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Team code" placeholder="CODE"><button class="btn" id="join">Join</button></div></div>
+        <div class="box"><h3>Start a new team</h3><p>You’ll get a code to share. You can also battle on your own.</p><button class="btn" id="create">Make a team</button></div>
+      </div>
+      <div class="err" id="err" role="alert">${esc(msg)}</div>
+      <ol class="howto"><li>Everyone gets their own question with different numbers.</li><li>Lock in the right answer to charge your hit. First try is full power.</li><li>Finished? Tap a teammate to help them. If the whole team hits first time, the damage is doubled!</li></ol>
+      <p class="note">Teachers: <button class="linkbtn" id="bigscreen">open a big-screen room for the class</button></p>
+    </div></div>`;
+  const hash = (location.hash || "").replace("#", "").toUpperCase(); if (/^[A-Z]{4}$/.test(hash)) $("code").value = hash;
+  document.querySelectorAll(".av").forEach((b) => b.onclick = () => { save.hero = b.dataset.hero; persist(); SFX.click(); document.querySelectorAll(".av").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false")); });
+  const name = () => { save.name = $("nm").value.trim().slice(0, 20); persist(); if (!save.name) { $("err").textContent = "Type your name first."; $("nm").focus(); } return save.name; };
+  const fail = (r) => { $("err").textContent = r && r.error === "no_room" ? "No team has that code. Check the letters and try again." : r && r.error === "full" ? "That team is full." : r && r.error === "busy" ? "Lots of teams are being made right now. Try again in a minute." : "Couldn’t reach the game server. Check the internet connection."; };
+  $("join").onclick = async () => {
+    if (!name()) return; const code = $("code").value.trim().toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code)) { $("err").textContent = "The team code is 4 letters."; $("code").focus(); return; }
+    $("err").textContent = "Joining…";
+    try { const r = await rpc("raid_join", { p_code: code, p_name: save.name, p_hero: save.hero }); r.ok ? enter(r, "player") : fail(r); } catch (e) { fail(); }
+  };
+  $("code").onkeydown = (e) => { if (e.key === "Enter") $("join").click(); };
+  $("create").onclick = async () => {
+    if (!name()) return; $("err").textContent = "Making your team…";
+    try { const r = await rpc("raid_create", { p_name: save.name, p_hero: save.hero, p_host: false }); r.ok ? enter(r, "player") : fail(r); } catch (e) { fail(); }
+  };
+  $("bigscreen").onclick = async () => {
+    $("err").textContent = "Opening a big-screen room…";
+    try { const r = await rpc("raid_create", { p_name: "Teacher", p_hero: "owl", p_host: true }); r.ok ? enter(r, "host") : fail(r); } catch (e) { fail(); }
+  };
+}
+
+function enter(r, role) {
+  save.code = r.code; save.key = r.key; save.role = role; persist(); S.hits = 0; S.my = null;
+  SFX.start(); room(); apply(r.state, ++S.seq); startPolling();
+}
+async function leaveRoom(msg = "") {
+  const { code, key, role } = save; stopPolling();
+  save.code = ""; save.key = ""; save.role = ""; persist();
+  if (code && key && role === "player") rpc("raid_leave", { p_code: code, p_key: key }).catch(() => {});
+  home(msg);
+}
+$("leave").onclick = () => leaveRoom();
+
+/* ================= room ================= */
+function room() {
+  document.body.classList.toggle("big", isHost());
+  $("codePill").hidden = false; $("codeTxt").textContent = save.code; $("leave").hidden = false; $("leave").textContent = isHost() ? "Close room" : "Leave team";
+  $("main").innerHTML = `<div class="stage" id="stage"></div><div class="team" id="team" aria-label="Team"></div><div class="panel" id="panel"></div>`;
+  S.teamSig = ""; S.waitSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null;
+}
+function startPolling() { stopPolling(); const loop = async () => { await poll(); if (save.code) S.timer = setTimeout(loop, (S.st && (S.st.phase === "question" || S.st.phase === "result") ? 1000 : 2000) + Math.random() * 300); }; S.timer = setTimeout(loop, 800); S.tick = setInterval(drawTimer, 200); }
+function stopPolling() { clearTimeout(S.timer); clearInterval(S.tick); S.timer = null; $("net").hidden = true; }
+async function poll() {
+  const seq = ++S.seq;
+  try { const st = await rpc("raid_state", { p_code: save.code, p_key: save.key }); S.fails = 0; $("net").hidden = true; apply(st, seq); }
+  catch (e) { if (++S.fails >= 3) $("net").hidden = false; }
+}
+function apply(st, seq) {
+  if (!save.code || seq < S.applied) return; S.applied = seq;
+  if (!st || !st.ok) return leaveRoom("That team has finished. Start a new one or join another.");
+  if (save.role === "player" && st.you == null) return leaveRoom("You’re no longer in that team. Join again with the code.");
+  const prev = S.st; S.st = st; S.leftAt = performance.now();
+  const key = st.phase + ":" + st.boss + ":" + st.round + ":" + st.seed;
+  if (key !== S.key) { S.key = key; onPhase(st, prev); }
+  live(st);
+}
+
+function onPhase(st, prev) {
+  closeCoach();
+  if (st.phase === "lobby") { stageLobby(st); S.canStart = null; }
+  else {
+    if (!$("bossWrap") || !prev || prev.boss !== st.boss || prev.phase === "lobby" || (prev.phase === "over" && st.phase === "question")) stageBattle(st);
+    if (st.phase === "question") {
+      const m = me(); S.my = { done: !!(m && m.done), resumed: !!(m && m.done), first: true, tries: 0, level: 0, help: false };
+      S.q = st.you != null ? makeQuestion(st, st.you) : null;
+      if (isHost() || st.you == null) panelWatch(st); else if (S.my.done) panelWaiting(st); else panelQuestion(st);
+      if (st.round === 1) SFX.start();
+    } else if (st.phase === "result") { playResult(st.last, S.key); panelResult(st); }
+    else if (st.phase === "over") { playResult(st.last, S.key, true); S.canStart = null; }
+  }
+}
+
+/* ---------- stage ---------- */
+function stageLobby(st) {
+  const s = $("stage"); s.style.setProperty("--tint", "#17494D");
+  s.innerHTML = `${STAGE_BG}<div class="codebox"><p>${isHost() ? "Go to Adventure 3, tap Join a team and type this code" : "Tell your team this code"}</p>
+    <div class="code" aria-label="Team code ${st.code.split("").join(" ")}">${st.code.split("").map((c) => `<span>${c}</span>`).join("")}</div><p id="lobbyCount"></p></div>`;
+}
+function stageBattle(st) {
+  const s = $("stage"), b = BOSSES[st.boss]; s.style.setProperty("--tint", b.tint);
+  s.innerHTML = `${STAGE_BG}<div class="stage-top"><div class="bossname">${esc(b.name)}</div><div class="bossstep">${esc(b.step)}</div>
+      <div class="hp" role="img" aria-label="Monster health"><i id="hpBar"></i><span id="hpText"></span></div>
+      <div class="meta"><span id="roundTxt"></span><span class="charge" title="Three perfect rounds fire a Time Blast">Time Blast <i></i><i></i><i></i></span></div></div>
+    <div class="bosswrap" id="bossWrap"><div class="bob" id="bossBob">${bossSVG(st.boss)}</div></div>
+    <div class="fx" id="fx"></div><div class="timer" id="timer"><i id="timerBar"></i><span id="timerTxt"></span></div>`;
+}
+function banner(text) { const fx = $("fx"); if (!fx) return; const b = document.createElement("div"); b.className = "banner"; b.textContent = text; fx.appendChild(b); setTimeout(() => b.remove(), 1800); }
+function floatDmg(text, blast) { const fx = $("fx"); if (!fx) return; const d = document.createElement("div"); d.className = "dmg" + (blast ? " blast" : ""); d.textContent = text; fx.appendChild(d); setTimeout(() => d.remove(), 1600); }
+function hurt() { const b = $("bossBob"); if (!b) return; b.classList.remove("hurt"); void b.offsetWidth; b.classList.add("hurt"); }
+function playResult(L, key, over) {
+  if (!L) return; const alive = () => S.key === key;
+  const perfect = L.n1 === L.total && L.n1 > 0;
+  banner(perfect ? (L.total > 1 ? "PERFECT TEAM!" : "PERFECT HIT!") : L.mult > 1 ? "TEAM COMBO!" : L.dmg > 0 ? "Team attack!" : "The monster dodged!");
+  if (perfect || L.mult > 1) SFX.combo();
+  if (L.dmg > 0) setTimeout(() => { if (!alive()) return; hurt(); SFX.hit(); floatDmg("−" + L.dmg); }, 600);
+  if (L.blast > 0) setTimeout(() => { if (!alive()) return; banner("TIME BLAST!"); SFX.blast(); hurt(); floatDmg("−" + L.blast, true); }, 2300);
+  if (over) setTimeout(() => {
+    if (!alive()) return; const b = $("bossBob"); if (!b) return; b.classList.remove("bob", "hurt");
+    if (L.stars > 0) { b.classList.add("dead"); SFX.win(); confetti(90); banner("MONSTER DEFEATED!"); } else { b.classList.add("fled"); banner("It ran away!"); }
+  }, L.blast > 0 ? 4000 : 1900);
+}
+function drawTimer() {
+  const st = S.st, bar = $("timerBar"); if (!st || !bar) return;
+  const total = [0, 45, 45, 60, 75, 75][st.boss];
+  if (st.phase !== "question" || st.left == null) { bar.style.width = "0%"; $("timerTxt").textContent = st.phase === "result" ? "Next round coming…" : ""; $("timer").classList.remove("low"); return; }
+  const left = Math.max(0, st.left - (performance.now() - S.leftAt) / 1000);
+  bar.style.width = Math.min(100, left / total * 100) + "%"; $("timer").classList.toggle("low", left <= 10);
+  $("timerTxt").textContent = Math.ceil(left) + " seconds";
+}
+
+/* ---------- things that update every second ---------- */
+function live(st) {
+  if (st.phase === "lobby") {
+    const n = st.players.length; if ($("lobbyCount")) $("lobbyCount").textContent = n === 0 ? "Waiting for heroes to join…" : n + (n === 1 ? " hero has" : " heroes have") + " joined";
+  } else if ($("hpBar")) {
+    $("hpBar").style.width = (st.max ? st.hp / st.max * 100 : 0) + "%"; $("hpText").textContent = st.hp + " / " + st.max;
+    $("roundTxt").textContent = "Round " + st.round + " of " + MAX_ROUNDS;
+    document.querySelectorAll(".charge i").forEach((el, i) => el.classList.toggle("on", i < st.charge));
+  }
+  drawTeam(st); drawTimer();
+  const cs = canStart(st);
+  if ((st.phase === "lobby" || st.phase === "over") && cs !== S.canStart) { S.canStart = cs; st.phase === "lobby" ? panelLobby(st) : panelOver(st); }
+  if (st.phase === "lobby" || st.phase === "over") updatePicker(st);
+  if (st.phase === "question") {
+    if (isHost() || st.you == null) { const el = $("watchCount"); if (el) { const d = st.players.filter((p) => p.done).length; el.textContent = d + " of " + st.players.length + " heroes locked in"; } }
+    else if (S.my && S.my.done) drawWaiting(st);
+    if (S.coachSlot != null) { const p = st.players.find((x) => x.slot === S.coachSlot); if (!p || p.done) closeCoach(); }
+  }
+}
+function drawTeam(st) {
+  const inRound = st.phase === "question", iAmDone = isHost() ? false : !!(S.my && S.my.done);
+  const sig = JSON.stringify([st.phase, st.you, iAmDone, st.players]); if (sig === S.teamSig && $("team").childElementCount) return; S.teamSig = sig;
+  $("team").innerHTML = st.players.length ? st.players.map((p) => {
+    const mine = p.slot === st.you, cls = ["chip", mine ? "me" : "", inRound && p.done ? "done" : "", inRound && p.help ? "help" : ""].join(" ");
+    const status = !inRound ? "" : p.done ? "✓" : p.help ? "✋" : `<span class="dots" aria-label="working"></span>`;
+    const canHelp = inRound && !mine && !p.done && iAmDone;
+    return `<button class="${cls}" data-slot="${p.slot}" ${canHelp ? "" : "disabled"} ${canHelp ? `aria-label="Help ${esc(p.name)}"` : ""}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span><span class="st">${status}</span></button>`;
+  }).join("") : `<span style="color:#fff; font-weight:800; padding:6px">No heroes yet</span>`;
+  document.querySelectorAll("#team .chip:not(:disabled)").forEach((b) => b.onclick = () => openCoach(+b.dataset.slot));
+}
+
+/* ---------- lobby and monster picker ---------- */
+function pickerHTML(st, can) {
+  if (!S.pickBoss) S.pickBoss = [1, 2, 3, 4, 5].find((n) => !(st.stars && st.stars[n])) || 5;
+  return `<div class="bosses">${[1, 2, 3, 4, 5].map((n) => `<button class="bosscard" data-boss="${n}" aria-pressed="${can && S.pickBoss === n}" ${can ? "" : "disabled"}>${bossSVG(n)}<span class="bn">${esc(BOSSES[n].name)}</span><span class="bs">${esc(BOSSES[n].step)}</span><span class="bstar" data-star="${n}"></span></button>`).join("")}</div>`;
+}
+function wirePicker(st) {
+  document.querySelectorAll(".bosscard:not(:disabled)").forEach((b) => b.onclick = () => { S.pickBoss = +b.dataset.boss; SFX.click(); document.querySelectorAll(".bosscard").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false")); });
+  const go = $("start"); if (!go) return;
+  go.onclick = async () => {
+    if (!S.st.players.length) return; go.disabled = true;
+    try { const seq = ++S.seq; apply(await rpc("raid_start", { p_code: save.code, p_key: save.key, p_boss: S.pickBoss }), seq); } catch (e) { go.disabled = false; }
+  };
+}
+function updatePicker(st) {
+  document.querySelectorAll("[data-star]").forEach((el) => { const n = (st.stars && st.stars[el.dataset.star]) || 0; el.textContent = n ? "★".repeat(n) + "☆".repeat(3 - n) : ""; });
+  const go = $("start"); if (go) go.disabled = st.players.length === 0;
+  const w = $("waitLead"); if (w) { const l = leader(st); w.textContent = st.hosted ? "Waiting for your teacher to start the battle." : l ? "Waiting for " + l.name + " to pick a monster and start." : ""; }
+}
+function panelLobby(st) {
+  const can = canStart(st);
+  $("panel").innerHTML = can
+    ? `<h2 class="big-msg">${isHost() ? "Pick a monster for the class" : "You’re the team leader"}</h2><p class="context">${isHost() ? "When everyone has joined, choose a monster and start the battle." : "Share the code, wait for your team, then pick a monster. Start with Step 1 if this is new."}</p>${pickerHTML(st, true)}<div class="row"><button class="btn" id="start">Start the battle</button></div>`
+    : `<h2 class="big-msg">You’re in the team!</h2><p class="context" id="waitLead"></p>${pickerHTML(st, false)}`;
+  wirePicker(st); updatePicker(st);
+}
+
+/* ---------- question ---------- */
+function lineHTML(q, level) { return `<div class="nl">${numberLine(q.line.stops, q.line.jumps, Math.min(level, q.line.max))}</div>`; }
+function panelQuestion(st) {
+  const q = S.q, hideLine = st.boss === 5;
+  $("panel").innerHTML = `<div class="qtop"><span>${esc(BOSSES[st.boss].step)}</span><span>Round ${st.round}</span></div>
+    <p class="prompt">${q.prompt}</p><div id="lineBox">${hideLine ? `<button class="btn ghost small" id="showLine" style="margin-bottom:10px">Show a number line</button>` : lineHTML(q, 0)}</div><div id="countBox"></div>
+    <div class="options">${q.options.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+    <div id="fb" class="feedback" aria-live="polite"></div>
+    <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="helpBtn">✋ Ask my team for help</button><span class="note" style="margin:0">First try = full power</span></div>`;
+  if ($("showLine")) $("showLine").onclick = () => { $("lineBox").innerHTML = lineHTML(q, S.my.level); };
+  $("helpBtn").onclick = async () => {
+    S.my.help = !S.my.help; $("helpBtn").textContent = S.my.help ? "✋ Help is on the way. Tap to cancel" : "✋ Ask my team for help"; SFX.click();
+    try { const seq = ++S.seq; apply(await rpc("raid_help", { p_code: save.code, p_key: save.key, p_round: st.round, p_on: S.my.help }), seq); } catch (e) {}
+  };
+  document.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+    const ok = b.dataset.v === q.answer; logAnswer(q, b.dataset.v, ok);
+    if (ok) {
+      b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); SFX.right();
+      S.my.done = true; S.my.first = S.my.tries === 0; S.hits++;
+      const round = st.round; panelWaiting(S.st); sendAnswer(round, S.my.first, 0);
+    } else {
+      b.classList.add("wrong"); b.disabled = true; SFX.wrong(); S.my.tries++; S.my.level = Math.min(2, S.my.tries);
+      if (q.line.max) $("lineBox").innerHTML = lineHTML(q, S.my.level);
+      if (q.count) $("countBox").innerHTML = `<div class="count">Count on: ${q.count.map((c) => `<span>${c}</span>`).join("→")}</div>`;
+      const f = $("fb"); f.className = "feedback show hint"; f.innerHTML = `<b>Not quite.</b> ${esc(q.hint)} You can still hit at half power, or ask your team for help.`;
+    }
+  });
+}
+async function sendAnswer(round, first, attempt) {
+  try { const seq = ++S.seq; apply(await rpc("raid_answer", { p_code: save.code, p_key: save.key, p_round: round, p_first: first }), seq); }
+  catch (e) { if (attempt < 4 && S.st && S.st.phase === "question" && S.st.round === round) setTimeout(() => sendAnswer(round, first, attempt + 1), 700); }
+}
+function panelWaiting(st) {
+  const full = S.my.first;
+  $("panel").innerHTML = `<h2 class="big-msg">Locked in! ✓</h2><p style="margin:0; font-weight:800">${S.my.resumed ? "Your hit is ready." : full ? "Full power hit ready (10)." : "Half power hit ready (5). Next time, check with the number line first."}</p><div id="waitBox"></div>`;
+  S.waitSig = ""; drawWaiting(st);
+}
+function drawWaiting(st) {
+  const box = $("waitBox"); if (!box) return;
+  const others = st.players.filter((p) => p.slot !== st.you && !p.done).sort((a, b) => (b.help ? 1 : 0) - (a.help ? 1 : 0));
+  const sig = JSON.stringify(others); if (sig === S.waitSig && box.childElementCount) return; S.waitSig = sig;
+  box.innerHTML = others.length
+    ? `<p class="context" style="margin:10px 0 0">${others.length === 1 ? "1 teammate is" : others.length + " teammates are"} still working. Go and help: if everyone hits first time, the damage is doubled!</p>
+       <div class="helplist">${others.map((p) => `<div class="helprow ${p.help ? "asked" : ""}">${heroSVG(p.hero)}<span class="nm">${esc(p.name)}${p.help ? " asked for help ✋" : ""}</span><button class="btn small" data-coach="${p.slot}">Help</button></div>`).join("")}</div>`
+    : `<p class="context" style="margin:10px 0 0">Everyone is locked in. Team attack incoming!</p>`;
+  box.querySelectorAll("[data-coach]").forEach((b) => b.onclick = () => openCoach(+b.dataset.coach));
+}
+function panelWatch(st) {
+  const b = BOSSES[st.boss];
+  $("panel").innerHTML = `<h2 class="big-msg">Round ${st.round}: heroes are working</h2><p class="context" id="watchCount"></p>
+    <p style="font-weight:900; margin:10px 0 0">How to beat ${esc(b.name)}</p><ol class="tips">${b.how.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
+    <p class="note">Finished early? Tap a teammate’s name on your own screen to help them. Everyone right first time doubles the damage.</p>`;
+}
+
+/* ---------- coaching a teammate ---------- */
+function openCoach(slot) {
+  const st = S.st, p = st.players.find((x) => x.slot === slot); if (!p || st.phase !== "question") return;
+  const q = makeQuestion(st, slot); S.coachSlot = slot; SFX.click();
+  $("coach").innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Help ${esc(p.name)}"><h2 class="big-msg">Help ${esc(p.name)}</h2>
+    <p class="context">This is ${esc(p.name)}’s question. Go and sit with them. Don’t say the answer: ask these coaching questions instead.</p>
+    <p class="prompt">${q.prompt}</p>${lineHTML(q, 0)}<ol class="tips">${COACH[q.kind].map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
+    <div class="row"><button class="btn" id="coachClose">Back to the battle</button></div></div>`;
+  $("coach").hidden = false; $("coachClose").onclick = closeCoach; $("coachClose").focus();
+}
+function closeCoach() { S.coachSlot = null; $("coach").hidden = true; $("coach").innerHTML = ""; }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("coach").hidden) closeCoach(); });
+$("coach").addEventListener("click", (e) => { if (e.target === $("coach")) closeCoach(); });
+
+/* ---------- results ---------- */
+function resultRows(L) {
+  const perfect = L.n1 === L.total && L.n1 > 0, solo = L.total === 1;
+  const rows = [[L.n1 + " of " + L.total, solo ? (L.n1 ? "You hit first time" : "No first-time hit") : (L.n1 === 1 ? "hero hit first time" : "heroes hit first time")]];
+  if (L.n2) rows.push([String(L.n2), L.n2 === 1 ? "hero hit at half power" : "heroes hit at half power"]);
+  rows.push(["×" + L.mult, perfect ? (solo ? "Perfect hit: double damage!" : "Perfect team: everyone hit first time, so double damage!") : L.mult > 1 ? "Team combo: half the team or more hit first time" : "No combo this round"]);
+  rows.push(["−" + L.dmg, "damage to the monster"]);
+  if (L.blast) rows.push(["−" + L.blast, "Time Blast! Three perfect rounds charged it up"]);
+  return `<div class="sum">${rows.map(([n, t]) => `<span class="n">${esc(n)}</span><span class="t">${esc(t)}</span>`).join("")}</div>`;
+}
+function panelResult(st) {
+  const L = st.last, perfect = L.n1 === L.total && L.n1 > 0;
+  const mine = isHost() || !S.my ? "" : S.my.done ? (S.my.resumed ? "Your hit landed." : S.my.first ? "Your hit landed at full power." : "Your hit landed at half power.") : "You didn’t lock in this round. Ask your team for help next time: tap the ✋ button.";
+  $("panel").innerHTML = `<h2 class="big-msg">Round ${L.round} team attack</h2>${resultRows(L)}
+    <p style="font-weight:800; margin:0">${esc(mine)}</p><p class="note">${perfect ? "Keep it up! Three perfect rounds fire a Time Blast." : "Tip: when you finish, tap a teammate who is still working and help them."}</p>`;
+}
+function panelOver(st) {
+  const L = st.last || {}, won = L.stars > 0, can = canStart(st);
+  const stars = won ? `<div class="stars" aria-label="${L.stars} out of 3 stars">${"★".repeat(L.stars)}<span class="off">${"★".repeat(3 - L.stars)}</span></div>` : "";
+  S.pickBoss = won ? Math.min(5, st.boss + 1) : st.boss;
+  $("panel").innerHTML = `<h2 class="big-msg">${won ? esc(BOSSES[st.boss].name) + " is defeated!" : esc(BOSSES[st.boss].name) + " ran away!"}</h2>${stars}
+    <p style="font-weight:800; margin:8px 0 0">${won ? "Your team won in " + L.round + " round" + (L.round === 1 ? "" : "s") + "." + (L.stars < 3 ? " Win in 5 rounds or fewer for 3 stars." : " That’s a 3-star win!") : "It got away after " + MAX_ROUNDS + " rounds. Help each other lock in first time, then try again."}</p>
+    ${L.round ? resultRows(L) : ""}
+    ${can ? `<h3 style="font-size:22px; margin-top:8px">${isHost() ? "Pick the next monster" : "Pick your team’s next monster"}</h3>${pickerHTML(st, true)}<div class="row"><button class="btn" id="start">Start the battle</button></div>`
+          : `<p class="context" id="waitLead" style="margin-top:10px"></p>${pickerHTML(st, false)}`}`;
+  wirePicker(st); updatePicker(st);
+}
+
+/* ================= go ================= */
+(async () => {
+  if (save.code && save.key) {
+    try { const st = await rpc("raid_state", { p_code: save.code, p_key: save.key }); if (st && st.ok && (save.role === "host" ? st.host : st.you != null)) { room(); apply(st, ++S.seq); startPolling(); return; } } catch (e) {}
+    save.code = ""; save.key = ""; save.role = ""; persist();
+  }
+  home();
+})();
+</script>
+</body>
+</html>
