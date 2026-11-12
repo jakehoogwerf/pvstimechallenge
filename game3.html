@@ -209,7 +209,54 @@ body.big .codebox p{font-size:28px}
 .confetti i{position:absolute; width:10px; height:14px; border-radius:2px; animation:fall 1.4s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg); opacity:.7}}
 
+/* ---------- battle polish ---------- */
+.hp b{position:absolute; left:0; top:0; bottom:0; width:100%; background:#FFF3C4; transition:width 1s ease-in 1.1s}
+.hp i{position:absolute; left:0; top:0; bottom:0; height:auto; z-index:1}
+.hp span{z-index:3}
+.hp::after{content:""; position:absolute; inset:0; z-index:2; pointer-events:none; background-image:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(0,0,0,.35) calc(10% - 2px) 10%)}
+.stage.rage .hp i{background:linear-gradient(90deg,#FF5C5C,#B3122E)}
+.stage.rage .bob{animation-duration:.75s}
+.stage.rage .bosswrap::before{content:""; position:absolute; left:50%; top:46%; width:min(70%,420px); aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(circle, rgba(255,80,60,.6), transparent 65%); animation:glow .7s ease-in-out infinite alternate}
+.stage.last .hp{animation:nudge .35s infinite alternate}
+.fly{animation:fly 9s ease-in-out infinite alternate}
+@keyframes fly{0%{transform:translate(0,0); opacity:.15}50%{opacity:1}100%{transform:translate(46px,-70px); opacity:.25}}
+.intro{position:absolute; inset:0; z-index:4; display:grid; place-items:center; text-align:center; color:#fff; background:rgba(4,14,16,.84); animation:introOut 2.6s forwards; pointer-events:none; padding:10px}
+@keyframes introOut{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0; visibility:hidden}}
+.intro .vs{font-family:"Lilita One",Arial,sans-serif; font-size:clamp(34px,8vw,68px); color:var(--gold); text-shadow:0 4px 0 #7A1F0A; animation:slam .5s .25s both; line-height:1.05}
+.intro .sub{font-weight:900; font-size:19px; margin:6px 0}
+@keyframes slam{0%{transform:scale(3.2); opacity:0}100%{transform:scale(1); opacity:1}}
+.bubble{position:absolute; right:5%; top:40%; max-width:40%; background:#fff; color:#12292B; font-weight:900; font-size:16px; line-height:1.25; padding:8px 12px; border-radius:16px 16px 16px 4px; z-index:3; animation:bubble 3.6s forwards; box-shadow:0 4px 0 rgba(0,0,0,.3)}
+body.big .bubble{font-size:24px}
+@keyframes bubble{0%{opacity:0; transform:scale(.6)}8%,85%{opacity:1; transform:scale(1)}100%{opacity:0}}
+.shot{position:fixed; left:0; top:0; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%; z-index:25; pointer-events:none; background:radial-gradient(circle,#fff 0 30%,#F2B632 60%,transparent 72%); box-shadow:0 0 14px 4px rgba(242,182,50,.8)}
+.spark{position:absolute; left:50%; top:52%; width:9px; height:9px; border-radius:50%; background:#FFE37A; z-index:3}
+.app.quake{animation:quake .45s}
+@keyframes quake{20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(4px,-2px)}}
+.toast{position:fixed; left:50%; top:64px; transform:translateX(-50%); background:#12292B; color:#fff; border:3px solid var(--gold); padding:10px 18px; border-radius:16px; font-weight:900; z-index:35; animation:toast 3.2s forwards; max-width:92vw; text-align:center}
+body.big .toast{font-size:28px; top:90px}
+@keyframes toast{0%{opacity:0; transform:translate(-50%,-20px)}10%,85%{opacity:1; transform:translate(-50%,0)}100%{opacity:0}}
+.power{display:flex; align-items:center; gap:12px; width:100%; margin-top:14px; text-align:left; border:3px solid var(--gold-dark); background:linear-gradient(135deg,#FFF3C4,#F2B632); color:#2A1C00; border-radius:18px; padding:10px 14px; box-shadow:0 5px 0 var(--gold-dark); position:relative; overflow:hidden}
+.power::after{content:""; position:absolute; top:0; bottom:0; width:40%; left:-60%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent); animation:shine 2.6s infinite}
+@keyframes shine{60%,100%{left:130%}}
+.power:disabled{filter:grayscale(.6); opacity:.8; cursor:not-allowed}
+.power .ic{font-size:34px; line-height:1}
+.power .pn{font-family:"Lilita One",Arial,sans-serif; font-size:20px; display:block}
+.power .pd{font-size:15px; font-weight:800; display:block}
+.power.used{background:var(--panel-2); border-color:var(--line); box-shadow:none; color:var(--ink)}
+.power.used::after{display:none}
+.chip .fxi{font-size:14px; flex:0 0 auto}
+.xp{height:16px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:2px solid var(--line); margin-top:6px}
+.xp i{display:block; height:100%; background:linear-gradient(90deg,var(--mint),#7BE0B5); transition:width 1.2s ease-out .5s}
+.stars span{display:inline-block; animation:starIn .5s both}
+.stars span:nth-child(2){animation-delay:.35s}
+.stars span:nth-child(3){animation-delay:.7s}
+@keyframes starIn{0%{transform:scale(0) rotate(-180deg); opacity:0}70%{transform:scale(1.4)}100%{transform:scale(1); opacity:1}}
+.statgrid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:12px 0 4px}
+.statgrid div{background:var(--panel-2); border-radius:14px; padding:8px 4px; text-align:center; font-weight:800; font-size:14px}
+.statgrid b{display:block; font-family:"Lilita One",Arial,sans-serif; font-size:26px; color:var(--title); font-weight:400}
+
 @media (max-width:640px){
+  .statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   body{font-size:17px}
   .options{grid-template-columns:1fr}
   .bosses{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -254,7 +301,7 @@ function dur(d) { const h = Math.floor(d / 60), m = d % 60, out = []; if (h) out
 function shortDur(d) { const h = Math.floor(d / 60), m = d % 60; return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim(); }
 
 const SAVE_KEY = "tickwick3-save-v1";
-let save = { name: "", hero: "fox", sound: true, code: "", key: "", role: "" };
+let save = { name: "", hero: "fox", sound: true, code: "", key: "", role: "", xp: 0 };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || "{}")); } catch (e) {}
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
@@ -279,7 +326,13 @@ const SFX = {
   win: () => [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, .22, "triangle", i * .13)),
   start: () => { tone(392, .2, "triangle"); tone(523, .2, "triangle", .15); tone(784, .35, "triangle", .3); },
   click: () => tone(520, .05, "sine", 0, .04),
+  power: () => { tone(880, .1, "sine"); tone(1320, .12, "sine", .08); tone(1760, .22, "sine", .16); },
 };
+/* battle music, only on the teacher's big screen */
+const Music = { t: null, step: 0, fast: false,
+  start(fast) { this.stop(); this.fast = fast; const notes = [110, 110, 131, 110, 147, 110, 131, 98];
+    this.t = setInterval(() => { const n = notes[this.step++ % notes.length]; tone(n, .16, "square", 0, .03); if (this.step % 2 === 0) tone(n * 2, .07, "triangle", 0, .02); }, 60000 / (fast ? 150 : 116) / 2); },
+  stop() { clearInterval(this.t); this.t = null; } };
 function drawSound() { $("sound").textContent = save.sound ? "🔊" : "🔇"; $("sound").setAttribute("aria-pressed", save.sound ? "true" : "false"); }
 $("sound").onclick = () => { save.sound = !save.sound; persist(); drawSound(); SFX.click(); };
 drawSound();
@@ -363,7 +416,16 @@ const BOSSES = [null,
 const STAGE_BG = `<svg class="bg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
   ${Array.from({ length: 26 }, (_, i) => `<circle class="${i % 3 ? "" : "twinkle"}" style="animation-delay:${(i % 5) * .3}s" cx="${(i * 97 + 31) % 800}" cy="${(i * 53 + 17) % 190}" r="${i % 3 ? 1.5 : 2.4}" fill="#FFF6D8"/>`).join("")}
   ${[30, 110, 690, 760].map((x, i) => `<path d="M${x} 400 V${250 - (i % 2) * 30} l-34 60 h20 l-30 50 h88 l-30 -50 h20z" fill="#061719" opacity=".55"/>`).join("")}
-  <path d="M0 360 Q200 320 400 350 T800 340 V400 H0Z" fill="#061719" opacity=".6"/></svg>`;
+  <path d="M0 360 Q200 320 400 350 T800 340 V400 H0Z" fill="#061719" opacity=".6"/>
+  ${Array.from({ length: 7 }, (_, i) => `<circle class="fly" style="animation-delay:-${i * 1.3}s; animation-duration:${7 + i}s" cx="${70 + i * 108}" cy="${240 + (i % 3) * 38}" r="3.5" fill="#D8FF8A"/>`).join("")}</svg>`;
+const scene = (inner) => `<svg class="bg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${inner}</svg>`;
+const SCENERY = {
+  1: scene(`<ellipse cx="150" cy="378" rx="80" ry="11" fill="#3A9D4F" opacity=".5"/><ellipse cx="650" cy="384" rx="100" ry="12" fill="#3A9D4F" opacity=".5"/><circle class="twinkle" cx="210" cy="338" r="7" fill="#9BE7A8" opacity=".6"/><circle class="twinkle" style="animation-delay:.6s" cx="590" cy="350" r="5" fill="#9BE7A8" opacity=".6"/><circle class="twinkle" style="animation-delay:1.1s" cx="120" cy="352" r="4" fill="#9BE7A8" opacity=".6"/>`),
+  2: scene(`<path d="M0 0 H800 V26 L762 92 L724 26 L662 118 L604 26 L522 70 L470 26 L384 100 L322 26 L242 80 L182 26 L92 110 L42 26 L0 60Z" fill="#2A1404" opacity=".75"/><ellipse class="glow" cx="400" cy="404" rx="430" ry="42" fill="#FF6B2C" opacity=".4"/>`),
+  3: scene(`<circle cx="670" cy="74" r="36" fill="#FFF6D8" opacity=".9"/><rect x="0" y="334" width="800" height="66" fill="#0E5660" opacity=".75"/><path d="M0 348 q50 -10 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0" stroke="#8FE0E8" stroke-width="3" fill="none" opacity=".6"/><path d="M0 372 q50 -10 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0" stroke="#8FE0E8" stroke-width="3" fill="none" opacity=".35"/>`),
+  4: scene(`<path d="M520 400 L640 186 L684 186 L800 400Z" fill="#221238" opacity=".85"/><path class="glow" d="M640 186 L662 214 L684 186Z" fill="#FF8A3D"/><path d="M0 0 Q130 20 170 130 Q80 60 0 96Z" fill="#1B4A2E" opacity=".85"/><path d="M800 0 Q670 20 630 130 Q720 60 800 96Z" fill="#1B4A2E" opacity=".85"/>`),
+  5: scene(`<g transform="translate(400 215)"><g class="spin" style="animation-duration:40s"><circle r="170" fill="none" stroke="#F2B632" stroke-width="12" stroke-dasharray="34 24" opacity=".22"/></g></g><path d="M36 400 V236 h20 v-22 h20 v22 h20 v-22 h20 v22 h20 V400Z M644 400 V254 h20 v-22 h20 v22 h20 v-22 h20 v22 h20 V400Z" fill="#171204" opacity=".8"/>`),
+};
 
 function numberLine(stops, jumps, level) {
   const W = 640, H = 160, X0 = 56, X1 = 584, Y = 112, n = stops.length - 1, xs = stops.map((_, i) => X0 + (X1 - X0) * i / n);
@@ -384,6 +446,21 @@ function numberLine(stops, jumps, level) {
 /* ================= questions (the same room, round and player always get the same question) ================= */
 function mix(a, b, c, d) { let h = (a ^ Math.imul(b + 1, 374761393) ^ Math.imul(c + 1, 668265263) ^ Math.imul(d + 1, 2246822519)) >>> 0; h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^ (h >>> 16)) >>> 0; }
 function rng(seed) { let t = seed >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0; let x = Math.imul(t ^ (t >>> 15), 1 | t); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
+const POWERS = {
+  strike: { icon: "⚡", name: "Power Strike", desc: "Your hit this round counts double. Use it before you answer.", toast: "used Power Strike! Their hit is doubled" },
+  freeze: { icon: "❄️", name: "Time Freeze", desc: "Adds 15 seconds to the clock for the whole team.", toast: "used Time Freeze! 15 more seconds for everyone" },
+  shield: { icon: "🛡️", name: "Team Shield", desc: "One second-try hit this round, yours or a teammate’s, still counts as first time.", toast: "used Team Shield! A second-try hit will count as first time" },
+};
+const RANKS = [[0, "Rookie Raider"], [60, "Minute Scout"], [150, "Clock Knight"], [300, "Hour Hero"], [500, "Time Champion"], [800, "Legend of Tickwick"]];
+const rankOf = (xp) => { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][0]) i++; return { name: RANKS[i][1], lo: RANKS[i][0], hi: i + 1 < RANKS.length ? RANKS[i + 1][0] : null }; };
+const TAUNTS = {
+  1: ["Nom nom! I eat minutes for breakfast!", "Count faster, little heroes!", "Same hour? I’ll munch it up!"],
+  2: ["You’ll never reach the o’clock!", "An hour has 100 minutes, right? Ha!", "My clock shield blocks sloppy counting!"],
+  3: ["Two heads, two jumps. Keep up!", "One jump is never enough for us!", "Hiss! Don’t forget to add them!"],
+  4: ["Three horns, three jumps!", "Hours AND minutes? Too tricky for you!", "Swap 60 minutes? Never heard of it!"],
+  5: ["I am the keeper of every clock!", "Tick. Tock. Your time is running out!", "No number line can stop me!"],
+};
+const RAGE_TAUNTS = ["Now I’m REALLY cross!", "Grrr! Is that all you’ve got?", "You won’t beat me together!"];
 const SKILLS = { 1: "Step 1: Same hour", 2: "Step 2: To the o’clock", 3: "Step 3: Across the o’clock", 4: "Step 4: With whole hours", 5: "Finish times" };
 const COACH = {
   1: ["Are both times in the same hour?", "Count on from the start minutes to the finish minutes."],
@@ -468,7 +545,7 @@ const canStart = (st) => st.host || (!st.hosted && st.you != null && leader(st) 
 
 /* ================= home ================= */
 function home(msg = "") {
-  stopPolling(); S.st = null; S.key = ""; document.body.classList.remove("big");
+  stopPolling(); Music.stop(); S.st = null; S.key = ""; document.body.classList.remove("big");
   $("codePill").hidden = true; $("leave").hidden = true; $("coach").hidden = true;
   const avs = Object.keys(HEROES).map((k) => `<button class="av" data-hero="${k}" aria-pressed="${save.hero === k}" aria-label="${HEROES[k].name}">${heroSVG(k)}</button>`).join("");
   $("main").innerHTML = `<div class="home">
@@ -476,6 +553,7 @@ function home(msg = "") {
     <div class="panel" style="border-radius:0 0 24px 24px">
       <h1 style="font-size:40px; color:var(--title)">Minute Monster Raid</h1>
       <p style="margin:6px 0 0; font-size:20px">Loose minutes have grown into monsters, and no hero can beat them alone. Team up, help each other and hit together for double damage!</p>
+      <p class="note" style="margin-top:10px">Your rank: <b>${esc(rankOf(save.xp || 0).name)}</b> (${save.xp || 0} XP)</p>
       <label class="field" for="nm">Your name<input id="nm" maxlength="20" autocomplete="off" value="${esc(save.name)}" placeholder="Type your first name"></label>
       <p style="font-weight:900; margin:14px 0 0">Choose your hero</p><div class="avatars">${avs}</div>
       <div class="two">
@@ -484,7 +562,7 @@ function home(msg = "") {
         <div class="box"><h3>Start a new team</h3><p>You’ll get a code to share. You can also battle on your own.</p><button class="btn" id="create">Make a team</button></div>
       </div>
       <div class="err" id="err" role="alert">${esc(msg)}</div>
-      <ol class="howto"><li>Everyone gets their own question with different numbers.</li><li>Lock in the right answer to charge your hit. First try is full power.</li><li>Finished? Tap a teammate to help them. If the whole team hits first time, the damage is doubled!</li></ol>
+      <ol class="howto"><li>Everyone gets their own question with different numbers.</li><li>Lock in the right answer to charge your hit. First try is full power.</li><li>Finished? Tap a teammate to help them. If the whole team hits first time, the damage is doubled!</li><li>Use your power-ups: ⚡ doubles your hit, ❄️ adds time for everyone, 🛡️ rescues a second-try hit.</li></ol>
       <p class="note">Teachers: <button class="linkbtn" id="bigscreen">open a big-screen room for the class</button></p>
     </div></div>`;
   const hash = (location.hash || "").replace("#", "").toUpperCase(); if (/^[A-Z]{4}$/.test(hash)) $("code").value = hash;
@@ -525,7 +603,7 @@ function room() {
   document.body.classList.toggle("big", isHost());
   $("codePill").hidden = false; $("codeTxt").textContent = save.code; $("leave").hidden = false; $("leave").textContent = isHost() ? "Close room" : "Leave team";
   $("main").innerHTML = `<div class="stage" id="stage"></div><div class="team" id="team" aria-label="Team"></div><div class="panel" id="panel"></div>`;
-  S.teamSig = ""; S.waitSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null;
+  S.teamSig = ""; S.waitSig = ""; S.powSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null; S.fxId = undefined; S.rage = 0; S.stats = { hits: 0, first: 0, xp: 0 };
 }
 function startPolling() { stopPolling(); const loop = async () => { await poll(); if (save.code) S.timer = setTimeout(loop, (S.st && (S.st.phase === "question" || S.st.phase === "result") ? 1000 : 2000) + Math.random() * 300); }; S.timer = setTimeout(loop, 800); S.tick = setInterval(drawTimer, 200); }
 function stopPolling() { clearTimeout(S.timer); clearInterval(S.tick); S.timer = null; $("net").hidden = true; }
@@ -539,6 +617,12 @@ function apply(st, seq) {
   if (!st || !st.ok) return leaveRoom("That team has finished. Start a new one or join another.");
   if (save.role === "player" && st.you == null) return leaveRoom("You’re no longer in that team. Join again with the code.");
   const prev = S.st; S.st = st; S.leftAt = performance.now();
+  if (st.fx && st.fx.id !== S.fxId) {
+    S.fxId = st.fx.id;
+    if (prev && st.phase === "question" && POWERS[st.fx.kind]) { toast(POWERS[st.fx.kind].icon + " " + st.fx.name + " " + POWERS[st.fx.kind].toast); SFX.power(); }
+  } else if (!st.fx) S.fxId = 0;
+  const pm = prev && prev.players.find((p) => p.slot === st.you), nm = st.players.find((p) => p.slot === st.you);
+  if (pm && nm && nm.power && !pm.power && prev.phase === "question" && st.phase !== "lobby" && POWERS[nm.power]) { toast("You earned a power-up: " + POWERS[nm.power].icon + " " + POWERS[nm.power].name); SFX.power(); }
   const key = st.phase + ":" + st.boss + ":" + st.round + ":" + st.seed;
   if (key !== S.key) { S.key = key; onPhase(st, prev); }
   live(st);
@@ -546,16 +630,18 @@ function apply(st, seq) {
 
 function onPhase(st, prev) {
   closeCoach();
-  if (st.phase === "lobby") { stageLobby(st); S.canStart = null; }
+  if (st.phase === "lobby") { stageLobby(st); S.canStart = null; Music.stop(); }
   else {
     if (!$("bossWrap") || !prev || prev.boss !== st.boss || prev.phase === "lobby" || (prev.phase === "over" && st.phase === "question")) stageBattle(st);
     if (st.phase === "question") {
       const m = me(); S.my = { done: !!(m && m.done), resumed: !!(m && m.done), first: true, tries: 0, level: 0, help: false };
       S.q = st.you != null ? makeQuestion(st, st.you) : null;
       if (isHost() || st.you == null) panelWatch(st); else if (S.my.done) panelWaiting(st); else panelQuestion(st);
-      if (st.round === 1) SFX.start();
+      S.powSig = "";
+      if (st.round === 1) { SFX.start(); S.stats = { hits: 0, first: 0, xp: 0 }; S.rage = 0; S.xpKey = ""; intro(st); } else taunt(st);
+      if (isHost() && !Music.t) Music.start(false);
     } else if (st.phase === "result") { playResult(st.last, S.key); panelResult(st); }
-    else if (st.phase === "over") { playResult(st.last, S.key, true); S.canStart = null; }
+    else if (st.phase === "over") { playResult(st.last, S.key, true); S.canStart = null; Music.stop(); awardXP(st); }
   }
 }
 
@@ -567,12 +653,36 @@ function stageLobby(st) {
 }
 function stageBattle(st) {
   const s = $("stage"), b = BOSSES[st.boss]; s.style.setProperty("--tint", b.tint);
-  s.innerHTML = `${STAGE_BG}<div class="stage-top"><div class="bossname">${esc(b.name)}</div><div class="bossstep">${esc(b.step)}</div>
-      <div class="hp" role="img" aria-label="Monster health"><i id="hpBar"></i><span id="hpText"></span></div>
+  s.classList.remove("rage", "last");
+  s.innerHTML = `${STAGE_BG}${SCENERY[st.boss]}<div class="stage-top"><div class="bossname">${esc(b.name)}</div><div class="bossstep">${esc(b.step)}</div>
+      <div class="hp" role="img" aria-label="Monster health"><b id="hpGhost"></b><i id="hpBar"></i><span id="hpText"></span></div>
       <div class="meta"><span id="roundTxt"></span><span class="charge" title="Three perfect rounds fire a Time Blast">Time Blast <i></i><i></i><i></i></span></div></div>
     <div class="bosswrap" id="bossWrap"><div class="bob" id="bossBob">${bossSVG(st.boss)}</div></div>
     <div class="fx" id="fx"></div><div class="timer" id="timer"><i id="timerBar"></i><span id="timerTxt"></span></div>`;
 }
+function toast(text) { document.querySelectorAll(".toast").forEach((t) => t.remove()); const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), 3300); }
+function intro(st) {
+  const s = $("stage"); if (!s) return; const d = document.createElement("div"); d.className = "intro";
+  d.innerHTML = `<div><div class="sub">${st.players.length > 1 ? "Your team of " + st.players.length + " faces" : "You face"}</div><div class="vs">${esc(BOSSES[st.boss].name)}</div><div class="sub">${esc(BOSSES[st.boss].step)}</div></div>`;
+  s.appendChild(d); setTimeout(() => d.remove(), 2700);
+}
+function taunt(st) {
+  const s = $("stage"); if (!s || reduceMotion) return; s.querySelectorAll(".bubble").forEach((b) => b.remove());
+  const d = document.createElement("div"); d.className = "bubble"; d.textContent = pick(S.rage ? RAGE_TAUNTS : TAUNTS[st.boss]); s.appendChild(d); setTimeout(() => d.remove(), 3700);
+}
+function sparks(n = 10) {
+  const fx = $("fx"); if (!fx || reduceMotion) return;
+  for (let i = 0; i < n; i++) { const p = document.createElement("div"); p.className = "spark"; fx.appendChild(p); const a = Math.random() * 6.283, r = 50 + Math.random() * 90;
+    p.animate([{ transform: "translate(-50%,-50%) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px) scale(.2)`, opacity: 0 }], { duration: 500 + Math.random() * 300, easing: "ease-out" }).onfinish = () => p.remove(); }
+}
+function fireShots() {
+  const boss = $("bossBob"); if (!boss || reduceMotion) return; const br = boss.getBoundingClientRect(), tx = br.left + br.width / 2, ty = br.top + br.height / 2;
+  [...document.querySelectorAll('#team .chip[data-hit="1"]')].slice(0, 14).forEach((chip, i) => {
+    const cr = chip.getBoundingClientRect(), x = cr.left + 22, y = cr.top + cr.height / 2, el = document.createElement("div"); el.className = "shot"; document.body.appendChild(el);
+    el.animate([{ transform: `translate(${x}px,${y}px) scale(.5)` }, { transform: `translate(${tx}px,${ty}px) scale(1.5)` }], { duration: 430, delay: i * 60, easing: "cubic-bezier(.5,0,.9,.5)", fill: "both" }).onfinish = () => el.remove();
+  });
+}
+function quake() { const a = document.querySelector(".app"); a.classList.remove("quake"); void a.offsetWidth; a.classList.add("quake"); }
 function banner(text) { const fx = $("fx"); if (!fx) return; const b = document.createElement("div"); b.className = "banner"; b.textContent = text; fx.appendChild(b); setTimeout(() => b.remove(), 1800); }
 function floatDmg(text, blast) { const fx = $("fx"); if (!fx) return; const d = document.createElement("div"); d.className = "dmg" + (blast ? " blast" : ""); d.textContent = text; fx.appendChild(d); setTimeout(() => d.remove(), 1600); }
 function hurt() { const b = $("bossBob"); if (!b) return; b.classList.remove("hurt"); void b.offsetWidth; b.classList.add("hurt"); }
@@ -581,11 +691,11 @@ function playResult(L, key, over) {
   const perfect = L.n1 === L.total && L.n1 > 0;
   banner(perfect ? (L.total > 1 ? "PERFECT TEAM!" : "PERFECT HIT!") : L.mult > 1 ? "TEAM COMBO!" : L.dmg > 0 ? "Team attack!" : "The monster dodged!");
   if (perfect || L.mult > 1) SFX.combo();
-  if (L.dmg > 0) setTimeout(() => { if (!alive()) return; hurt(); SFX.hit(); floatDmg("−" + L.dmg); }, 600);
-  if (L.blast > 0) setTimeout(() => { if (!alive()) return; banner("TIME BLAST!"); SFX.blast(); hurt(); floatDmg("−" + L.blast, true); }, 2300);
+  if (L.dmg > 0) { setTimeout(() => { if (alive()) fireShots(); }, 120); setTimeout(() => { if (!alive()) return; hurt(); SFX.hit(); sparks(perfect ? 18 : 10); if (perfect) quake(); floatDmg("−" + L.dmg); }, 650); }
+  if (L.blast > 0) setTimeout(() => { if (!alive()) return; banner("TIME BLAST!"); SFX.blast(); hurt(); sparks(22); quake(); floatDmg("−" + L.blast, true); }, 2300);
   if (over) setTimeout(() => {
     if (!alive()) return; const b = $("bossBob"); if (!b) return; b.classList.remove("bob", "hurt");
-    if (L.stars > 0) { b.classList.add("dead"); SFX.win(); confetti(90); banner("MONSTER DEFEATED!"); } else { b.classList.add("fled"); banner("It ran away!"); }
+    if (L.stars > 0) { b.classList.add("dead"); SFX.win(); confetti(90); banner("MONSTER DEFEATED!"); sparks(24); for (let i = 0; i < L.stars; i++) setTimeout(() => tone(880 + i * 220, .2, "triangle"), 900 + i * 350); } else { b.classList.add("fled"); banner("It ran away!"); }
   }, L.blast > 0 ? 4000 : 1900);
 }
 function drawTimer() {
@@ -602,7 +712,11 @@ function live(st) {
   if (st.phase === "lobby") {
     const n = st.players.length; if ($("lobbyCount")) $("lobbyCount").textContent = n === 0 ? "Waiting for heroes to join…" : n + (n === 1 ? " hero has" : " heroes have") + " joined";
   } else if ($("hpBar")) {
-    $("hpBar").style.width = (st.max ? st.hp / st.max * 100 : 0) + "%"; $("hpText").textContent = st.hp + " / " + st.max;
+    const frac = st.max ? st.hp / st.max : 0, lvl = st.hp > 0 && frac <= .2 ? 2 : st.hp > 0 && frac <= .5 ? 1 : 0, stage = $("stage");
+    $("hpBar").style.width = frac * 100 + "%"; if ($("hpGhost")) $("hpGhost").style.width = frac * 100 + "%"; $("hpText").textContent = st.hp + " / " + st.max;
+    stage.classList.toggle("rage", lvl >= 1); stage.classList.toggle("last", lvl === 2);
+    if (lvl > (S.rage || 0)) { S.rage = lvl; const k = S.key; setTimeout(() => { if (S.key === k || S.st.phase === "question") banner(lvl === 2 ? "Almost defeated!" : "It’s enraged!"); }, st.phase === "result" ? 3300 : 300); if (isHost() && Music.t && !Music.fast) Music.start(true); }
+    else if (lvl < (S.rage || 0)) S.rage = lvl;
     $("roundTxt").textContent = "Round " + st.round + " of " + MAX_ROUNDS;
     document.querySelectorAll(".charge i").forEach((el, i) => el.classList.toggle("on", i < st.charge));
   }
@@ -613,6 +727,7 @@ function live(st) {
   if (st.phase === "question") {
     if (isHost() || st.you == null) { const el = $("watchCount"); if (el) { const d = st.players.filter((p) => p.done).length; el.textContent = d + " of " + st.players.length + " heroes locked in"; } }
     else if (S.my && S.my.done) drawWaiting(st);
+    if (!isHost() && st.you != null) drawPower(st);
     if (S.coachSlot != null) { const p = st.players.find((x) => x.slot === S.coachSlot); if (!p || p.done) closeCoach(); }
   }
 }
@@ -623,7 +738,8 @@ function drawTeam(st) {
     const mine = p.slot === st.you, cls = ["chip", mine ? "me" : "", inRound && p.done ? "done" : "", inRound && p.help ? "help" : ""].join(" ");
     const status = !inRound ? "" : p.done ? "✓" : p.help ? "✋" : `<span class="dots" aria-label="working"></span>`;
     const canHelp = inRound && !mine && !p.done && iAmDone;
-    return `<button class="${cls}" data-slot="${p.slot}" ${canHelp ? "" : "disabled"} ${canHelp ? `aria-label="Help ${esc(p.name)}"` : ""}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span><span class="st">${status}</span></button>`;
+    const fxi = (inRound && p.boost ? `<span class="fxi" title="Power Strike">⚡</span>` : "") + (inRound && p.shield ? `<span class="fxi" title="Team Shield">🛡️</span>` : "");
+    return `<button class="${cls}" data-slot="${p.slot}" data-hit="${p.done ? 1 : 0}" ${canHelp ? "" : "disabled"} ${canHelp ? `aria-label="Help ${esc(p.name)}"` : ""}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span>${fxi}<span class="st">${status}</span></button>`;
   }).join("") : `<span style="color:#fff; font-weight:800; padding:6px">No heroes yet</span>`;
   document.querySelectorAll("#team .chip:not(:disabled)").forEach((b) => b.onclick = () => openCoach(+b.dataset.slot));
 }
@@ -654,6 +770,27 @@ function panelLobby(st) {
   wirePicker(st); updatePicker(st);
 }
 
+/* ---------- power-ups ---------- */
+function drawPower(st) {
+  const box = $("powerBox"), m = me(); if (!box || !m) return;
+  const done = !!(S.my && S.my.done), sig = [m.power, m.boost, m.shield, done, m.streak].join("|"); if (sig === S.powSig && box.childElementCount) return; S.powSig = sig;
+  if (m.power && POWERS[m.power]) {
+    const P = POWERS[m.power], blocked = m.power === "strike" && done;
+    box.innerHTML = `<button class="power" id="usePower" ${blocked ? "disabled" : ""}><span class="ic" aria-hidden="true">${P.icon}</span><span><span class="pn">Power-up: ${P.name}</span><span class="pd">${blocked ? "Saved for next round. Use it before you answer." : P.desc + " Tap to use."}</span></span></button>`;
+    if (!blocked) $("usePower").onclick = async () => {
+      $("usePower").disabled = true;
+      try { const seq = ++S.seq; apply(await rpc("raid_power", { p_code: save.code, p_key: save.key, p_round: S.st.round }), seq); } catch (e) { S.powSig = ""; }
+    };
+  } else if (m.boost || m.shield) {
+    const P = POWERS[m.boost ? "strike" : "shield"];
+    box.innerHTML = `<div class="power used"><span class="ic" aria-hidden="true">${P.icon}</span><span><span class="pn">${P.name} is active</span><span class="pd">${m.boost ? (done ? "Your hit is doubled!" : "Answer now for a double hit!") : "One second-try hit this round will count as first time."}</span></span></div>`;
+  } else box.innerHTML = `<p class="note">No power-up right now. Hit first time ${m.streak >= 1 ? "once more" : "twice in a row"} to earn one.</p>`;
+}
+function awardXP(st) {
+  const L = st.last || {}; if (isHost() || st.you == null || S.xpKey === S.key || !S.stats) return; S.xpKey = S.key;
+  const bonus = (L.stars || 0) * 20; S.stats.xp += bonus; save.xp = (save.xp || 0) + bonus; persist();
+}
+
 /* ---------- question ---------- */
 function lineHTML(q, level) { return `<div class="nl">${numberLine(q.line.stops, q.line.jumps, Math.min(level, q.line.max))}</div>`; }
 function panelQuestion(st) {
@@ -661,7 +798,7 @@ function panelQuestion(st) {
   $("panel").innerHTML = `<div class="qtop"><span>${esc(BOSSES[st.boss].step)}</span><span>Round ${st.round}</span></div>
     <p class="prompt">${q.prompt}</p><div id="lineBox">${hideLine ? `<button class="btn ghost small" id="showLine" style="margin-bottom:10px">Show a number line</button>` : lineHTML(q, 0)}</div><div id="countBox"></div>
     <div class="options">${q.options.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>
-    <div id="fb" class="feedback" aria-live="polite"></div>
+    <div id="fb" class="feedback" aria-live="polite"></div><div id="powerBox"></div>
     <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="helpBtn">✋ Ask my team for help</button><span class="note" style="margin:0">First try = full power</span></div>`;
   if ($("showLine")) $("showLine").onclick = () => { $("lineBox").innerHTML = lineHTML(q, S.my.level); };
   $("helpBtn").onclick = async () => {
@@ -673,6 +810,7 @@ function panelQuestion(st) {
     if (ok) {
       b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); SFX.right();
       S.my.done = true; S.my.first = S.my.tries === 0; S.hits++;
+      const gain = S.my.first ? 10 : 5; S.stats.hits++; if (S.my.first) S.stats.first++; S.stats.xp += gain; save.xp = (save.xp || 0) + gain; persist();
       const round = st.round; panelWaiting(S.st); sendAnswer(round, S.my.first, 0);
     } else {
       b.classList.add("wrong"); b.disabled = true; SFX.wrong(); S.my.tries++; S.my.level = Math.min(2, S.my.tries);
@@ -688,7 +826,8 @@ async function sendAnswer(round, first, attempt) {
 }
 function panelWaiting(st) {
   const full = S.my.first;
-  $("panel").innerHTML = `<h2 class="big-msg">Locked in! ✓</h2><p style="margin:0; font-weight:800">${S.my.resumed ? "Your hit is ready." : full ? "Full power hit ready (10)." : "Half power hit ready (5). Next time, check with the number line first."}</p><div id="waitBox"></div>`;
+  $("panel").innerHTML = `<h2 class="big-msg">Locked in! ✓</h2><p style="margin:0; font-weight:800">${S.my.resumed ? "Your hit is ready." : full ? "Full power hit ready (10)." : "Half power hit ready (5). Next time, check with the number line first."}</p><div id="waitBox"></div><div id="powerBox"></div>`;
+  S.powSig = "";
   S.waitSig = ""; drawWaiting(st);
 }
 function drawWaiting(st) {
@@ -705,7 +844,8 @@ function panelWatch(st) {
   const b = BOSSES[st.boss];
   $("panel").innerHTML = `<h2 class="big-msg">Round ${st.round}: heroes are working</h2><p class="context" id="watchCount"></p>
     <p style="font-weight:900; margin:10px 0 0">How to beat ${esc(b.name)}</p><ol class="tips">${b.how.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
-    <p class="note">Finished early? Tap a teammate’s name on your own screen to help them. Everyone right first time doubles the damage.</p>`;
+    <p class="note">Finished early? Tap a teammate’s name on your own screen to help them. Everyone right first time doubles the damage.</p>
+    <p class="note">Power-ups: ⚡ doubles your hit, ❄️ adds 15 seconds for everyone, 🛡️ makes one second-try hit count as first time. Two first-time hits in a row earn a new one.</p>`;
 }
 
 /* ---------- coaching a teammate ---------- */
@@ -727,6 +867,8 @@ function resultRows(L) {
   const perfect = L.n1 === L.total && L.n1 > 0, solo = L.total === 1;
   const rows = [[L.n1 + " of " + L.total, solo ? (L.n1 ? "You hit first time" : "No first-time hit") : (L.n1 === 1 ? "hero hit first time" : "heroes hit first time")]];
   if (L.n2) rows.push([String(L.n2), L.n2 === 1 ? "hero hit at half power" : "heroes hit at half power"]);
+  if (L.strikes) rows.push(["⚡ " + L.strikes, L.strikes === 1 ? "Power Strike doubled a hit" : "Power Strikes doubled hits"]);
+  if (L.saved) rows.push(["🛡️ " + L.saved, L.saved === 1 ? "second-try hit saved by a Team Shield" : "second-try hits saved by Team Shields"]);
   rows.push(["×" + L.mult, perfect ? (solo ? "Perfect hit: double damage!" : "Perfect team: everyone hit first time, so double damage!") : L.mult > 1 ? "Team combo: half the team or more hit first time" : "No combo this round"]);
   rows.push(["−" + L.dmg, "damage to the monster"]);
   if (L.blast) rows.push(["−" + L.blast, "Time Blast! Three perfect rounds charged it up"]);
@@ -740,14 +882,17 @@ function panelResult(st) {
 }
 function panelOver(st) {
   const L = st.last || {}, won = L.stars > 0, can = canStart(st);
-  const stars = won ? `<div class="stars" aria-label="${L.stars} out of 3 stars">${"★".repeat(L.stars)}<span class="off">${"★".repeat(3 - L.stars)}</span></div>` : "";
+  const stars = won ? `<div class="stars" aria-label="${L.stars} out of 3 stars">${[1, 2, 3].map((i) => `<span class="${i <= L.stars ? "" : "off"}">★</span>`).join("")}</div>` : "";
+  const rk = rankOf(save.xp || 0), mineStats = !isHost() && st.you != null && S.stats ? `<div class="statgrid"><div><b>${S.stats.hits}</b>your hits</div><div><b>${S.stats.first}</b>first time</div><div><b>+${S.stats.xp}</b>XP earned</div><div><b>${save.xp || 0}</b>total XP</div></div>
+    <p style="margin:0; font-weight:900">Rank: ${esc(rk.name)}${rk.hi ? ` <span class="note" style="font-weight:800">(${rk.hi - (save.xp || 0)} XP to the next rank)</span>` : ""}</p><div class="xp"><i id="xpBar" style="width:0%"></i></div>` : "";
   S.pickBoss = won ? Math.min(5, st.boss + 1) : st.boss;
   $("panel").innerHTML = `<h2 class="big-msg">${won ? esc(BOSSES[st.boss].name) + " is defeated!" : esc(BOSSES[st.boss].name) + " ran away!"}</h2>${stars}
     <p style="font-weight:800; margin:8px 0 0">${won ? "Your team won in " + L.round + " round" + (L.round === 1 ? "" : "s") + "." + (L.stars < 3 ? " Win in 5 rounds or fewer for 3 stars." : " That’s a 3-star win!") : "It got away after " + MAX_ROUNDS + " rounds. Help each other lock in first time, then try again."}</p>
-    ${L.round ? resultRows(L) : ""}
+    ${L.round ? resultRows(L) : ""}${mineStats}
     ${can ? `<h3 style="font-size:22px; margin-top:8px">${isHost() ? "Pick the next monster" : "Pick your team’s next monster"}</h3>${pickerHTML(st, true)}<div class="row"><button class="btn" id="start">Start the battle</button></div>`
           : `<p class="context" id="waitLead" style="margin-top:10px"></p>${pickerHTML(st, false)}`}`;
   wirePicker(st); updatePicker(st);
+  if ($("xpBar")) { const w = rk.hi ? ((save.xp || 0) - rk.lo) / (rk.hi - rk.lo) * 100 : 100; requestAnimationFrame(() => { if ($("xpBar")) $("xpBar").style.width = Math.max(4, Math.min(100, w)) + "%"; }); }
 }
 
 /* ================= go ================= */
