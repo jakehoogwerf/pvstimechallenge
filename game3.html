@@ -245,6 +245,47 @@ body.big .toast{font-size:28px; top:90px}
 .power.used{background:var(--panel-2); border-color:var(--line); box-shadow:none; color:var(--ink)}
 .power.used::after{display:none}
 .chip .fxi{font-size:14px; flex:0 0 auto}
+/* side-by-side on laptops and landscape tablets, compact monster on small screens */
+@media (min-width:900px){
+  body:not(.big) .app:has(#stage){max-width:1240px}
+  body:not(.big) #main:has(#stage){display:grid; grid-template-columns:1.05fr 1fr; grid-template-areas:"stage panel" "team panel"; grid-template-rows:auto 1fr; column-gap:16px; align-items:start}
+  body:not(.big) #stage{grid-area:stage; border-radius:24px 24px 0 0}
+  body:not(.big) #team{grid-area:team; border-radius:0 0 24px 24px}
+  body:not(.big) #panel{grid-area:panel; border-radius:24px}
+}
+@media (max-width:899px){
+  #stage{min-height:0}
+  #stage .stage-top{padding:10px 12px 0}
+  #stage .bosswrap{padding:0 0 24px}
+  #stage .bosswrap > div{width:min(30%,150px)}
+  #stage .tpnote{display:none}
+}
+.bosswrap svg{transform:scale(var(--grow,1)); transform-origin:50% 92%; transition:transform .6s}
+.lvl{display:inline-block; font-family:"Nunito",Arial,sans-serif; font-size:14px; font-weight:900; background:rgba(255,255,255,.22); border-radius:999px; padding:1px 10px; vertical-align:middle}
+body.big .lvl{font-size:22px}
+/* roles, rescues, finishing move, Titan */
+.roles{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 4px}
+.rolecard{border:4px solid transparent; background:var(--panel-2); color:var(--ink); border-radius:18px; padding:10px; text-align:left; display:flex; flex-direction:column; gap:2px; font-size:15px; font-weight:700}
+.rolecard b{font-family:"Lilita One",Arial,sans-serif; font-weight:400; font-size:20px}
+.rolecard .ri{font-size:26px; line-height:1}
+.rolecard[aria-pressed="true"]{border-color:var(--gold); background:var(--panel); transform:translateY(-3px)}
+.chip.grab{background:var(--ember); color:#fff; animation:nudge .5s ease-in-out infinite alternate}
+.dizzy{animation:dizzy .45s linear infinite}
+@keyframes dizzy{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.tapbtn{font-family:"Lilita One",Arial,sans-serif; font-size:44px; padding:26px 70px; border-radius:999px; touch-action:manipulation; user-select:none; -webkit-user-select:none}
+.tapbtn:active{transform:scale(.92) translateY(4px)}
+.titan{background:var(--panel-2); border-radius:18px; padding:14px; margin-top:14px}
+.titan .tt-h{display:flex; align-items:center; gap:8px; font-family:"Lilita One",Arial,sans-serif; font-size:21px}
+.titan .tt-h b{font-weight:400}
+.titan .tt-t{margin-left:auto; font-size:18px}
+.titan .hp{border-color:var(--line); background:var(--panel)}
+.titan .hp i{background:linear-gradient(90deg,#9C72DC,#5B3596)}
+@media (max-width:640px){.roles{grid-template-columns:1fr}}
+/* aiming pop-up */
+#aimBox{z-index:32; cursor:pointer; touch-action:manipulation}
+#aimBox .sheet{max-width:420px; border-color:var(--gold); padding:18px}
+.legend{display:flex; flex-direction:column; gap:3px; align-items:flex-start; font-weight:800; font-size:15px; margin:0 auto}
+.legend i{display:inline-block; width:16px; height:16px; border-radius:5px; margin-right:7px; vertical-align:-3px; border:2px solid var(--line)}
 /* live waves */
 .hearts{color:#FF6B81; font-size:20px; letter-spacing:2px; text-shadow:0 2px 0 rgba(0,0,0,.4)}
 .hearts .off{color:rgba(255,255,255,.25); text-shadow:none}
@@ -287,7 +328,8 @@ body.big .tpower{font-size:22px} body.big .tpower .tpx{font-size:36px} body.big 
 @media (max-width:640px){
   .statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   body{font-size:17px}
-  .options{grid-template-columns:1fr}
+  .options{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
+  .opt{font-size:17px; padding:10px 6px; min-height:56px}
   .bosses{grid-template-columns:repeat(2,minmax(0,1fr))}
   .avatars{grid-template-columns:repeat(3,minmax(0,1fr))}
   .two{grid-template-columns:1fr}
@@ -312,6 +354,7 @@ body.big .tpower{font-size:22px} body.big .tpower .tpx{font-size:36px} body.big 
   <div id="main"></div>
 </div>
 <div class="modal" id="coach" hidden></div>
+<div class="modal" id="aimBox" hidden></div>
 <div class="net" id="net" hidden>Reconnecting…</div>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 
@@ -330,7 +373,7 @@ function dur(d) { const h = Math.floor(d / 60), m = d % 60, out = []; if (h) out
 function shortDur(d) { const h = Math.floor(d / 60), m = d % 60; return ((h ? h + " h " : "") + (m || !h ? m + " min" : "")).trim(); }
 
 const SAVE_KEY = "tickwick3-save-v1";
-let save = { name: "", hero: "fox", sound: true, code: "", key: "", role: "", xp: 0 };
+let save = { name: "", hero: "fox", cls: "striker", sound: true, code: "", key: "", role: "", xp: 0 };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || "{}")); } catch (e) {}
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
@@ -484,6 +527,20 @@ const EVENTS = {
   weak: { icon: "🎯", name: "Weak spot!", desc: "The gold zone is twice as big this wave." },
   frenzy: { icon: "🔥", name: "Frenzy!", desc: "Every hit does 50% more damage this wave." },
   treasure: { icon: "🎁", name: "Treasure wave!", desc: "Your first hit this wave drops a power-up." },
+  gobble: { icon: "😋", name: "Gobble!", desc: "The Muncher ate the number lines. No hint lines this wave!", special: true },
+  smash: { icon: "💥", name: "Ground Smash!", desc: "The Ogre shook the clock. This wave is 15 seconds shorter!", special: true },
+  double: { icon: "🐍", name: "Double Trouble!", desc: "Every hero needs TWO hits this wave to block the monster.", special: true },
+  stampede: { icon: "🦏", name: "Stampede!", desc: "If the monster strikes this wave, it costs double hearts.", special: true },
+  warp: { icon: "🌀", name: "Time Warp!", desc: "The aiming hand spins much faster this wave.", special: true },
+};
+const ROLES = {
+  striker: { icon: "⚔️", name: "Striker", desc: "Your critical hits do extra damage." },
+  guardian: { icon: "💚", name: "Guardian", desc: "Your first hit each wave can restore a team heart." },
+  scout: { icon: "🔭", name: "Scout", desc: "Your number line shows the first jump, and you see more when you coach." },
+};
+const FX = {
+  heal: (f) => "💚 " + f.name + " the Guardian restored a team heart!",
+  rescue: (f) => "🦸 " + f.name + " rescued " + f.who + "! Double damage!",
 };
 const RANKS = [[0, "Rookie Raider"], [60, "Minute Scout"], [150, "Clock Knight"], [300, "Hour Hero"], [500, "Time Champion"], [800, "Legend of Tickwick"]];
 const rankOf = (xp) => { let i = 0; while (i + 1 < RANKS.length && xp >= RANKS[i + 1][0]) i++; return { name: RANKS[i][1], lo: RANKS[i][0], hi: i + 1 < RANKS.length ? RANKS[i + 1][0] : null }; };
@@ -590,17 +647,20 @@ function home(msg = "") {
       <p class="note" style="margin-top:10px">Your rank: <b>${esc(rankOf(save.xp || 0).name)}</b> (${save.xp || 0} XP)</p>
       <label class="field" for="nm">Your name<input id="nm" maxlength="20" autocomplete="off" value="${esc(save.name)}" placeholder="Type your first name"></label>
       <p style="font-weight:900; margin:14px 0 0">Choose your hero</p><div class="avatars">${avs}</div>
+      <p style="font-weight:900; margin:14px 0 0">Choose your role</p><div class="roles">${Object.keys(ROLES).map((k) => `<button class="rolecard" data-role="${k}" aria-pressed="${save.cls === k}"><span class="ri" aria-hidden="true">${ROLES[k].icon}</span><b>${ROLES[k].name}</b><span>${ROLES[k].desc}</span></button>`).join("")}</div>
       <div class="two">
         <div class="box"><h3>Join a team</h3><p>Type the 4-letter code from your teacher or team leader.</p>
           <div class="codein"><input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Team code" placeholder="CODE"><button class="btn" id="join">Join</button></div></div>
         <div class="box"><h3>Start a new team</h3><p>You’ll get a code to share. You can also battle on your own.</p><button class="btn" id="create">Make a team</button></div>
       </div>
-      <div class="err" id="err" role="alert">${esc(msg)}</div>
+      <div class="err" id="err" role="alert">${esc(msg)}</div><div id="titanHome"></div>
       <ol class="howto"><li>Each wave, answer as many questions as you can. Every right answer fires a hit, and you aim it on the clock for a critical.</li><li>The more heroes who have landed a hit this wave, the harder everyone hits. When everyone has hit, damage is doubled!</li><li>When the wave ends, the monster strikes back if any hero hasn’t landed a hit. So if you’ve hit, tap a teammate and help them.</li><li>Use your power-ups: ⚡ doubles your next hit, ❄️ adds time, 🛡️ blocks the monster’s attack.</li></ol>
       <p class="note">Teachers: <button class="linkbtn" id="bigscreen">open a big-screen room for the class</button></p>
     </div></div>`;
   const hash = (location.hash || "").replace("#", "").toUpperCase(); if (/^[A-Z]{4}$/.test(hash)) $("code").value = hash;
   document.querySelectorAll(".av").forEach((b) => b.onclick = () => { save.hero = b.dataset.hero; persist(); SFX.click(); document.querySelectorAll(".av").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false")); });
+  document.querySelectorAll(".rolecard").forEach((b) => b.onclick = () => { save.cls = b.dataset.role; persist(); SFX.click(); document.querySelectorAll(".rolecard").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false")); });
+  titan($("titanHome"));
   const name = () => { save.name = $("nm").value.trim().slice(0, 20); persist(); if (!save.name) { $("err").textContent = "Type your name first."; $("nm").focus(); } return save.name; };
   const fail = (r) => { $("err").textContent = r && r.error === "no_room" ? "No team has that code. Check the letters and try again." : r && r.error === "full" ? "That team is full." : r && r.error === "busy" ? "Lots of teams are being made right now. Try again in a minute." : "Couldn’t reach the game server. Check the internet connection."; };
   $("join").onclick = async () => {
@@ -623,6 +683,7 @@ function home(msg = "") {
 function enter(r, role) {
   save.code = r.code; save.key = r.key; save.role = role; persist(); S.hits = 0; S.my = null;
   SFX.start(); room(); apply(r.state, ++S.seq); startPolling();
+  if (role === "player") { const seq = ++S.seq; rpc("raid_role", { p_code: save.code, p_key: save.key, p_role: save.cls }).then((st) => apply(st, seq)).catch(() => {}); }
 }
 async function leaveRoom(msg = "") {
   const { code, key, role } = save; stopPolling();
@@ -632,6 +693,18 @@ async function leaveRoom(msg = "") {
 }
 $("leave").onclick = () => leaveRoom();
 
+/* the Time Titan: one giant monster shared by every team in the class */
+async function titan(el, dealt) {
+  try {
+    const m = await rpc("raid_mega_view", {}); if (!m || !m.ok || !el || !document.body.contains(el)) return;
+    el.innerHTML = `<div class="titan"><div class="tt-h"><b>The Time Titan</b><span class="lvl" style="background:var(--panel)">Level ${m.level}</span><span class="tt-t" title="Class trophies">🏆 ${m.trophies}</span></div>
+      <div class="hp" role="img" aria-label="Titan health"><i style="width:${Math.max(0, Math.min(100, m.hp / m.max * 100))}%"></i><span>${m.hp.toLocaleString()} / ${m.max.toLocaleString()}</span></div>
+      <p class="note" style="margin:6px 0 0">${dealt ? "Your team’s battle took " + dealt.toLocaleString() + " health off the Titan. " : ""}Every hit in every battle also hurts the Titan. Your class has ${m.days} day${m.days === 1 ? "" : "s"} left to beat it for a trophy!</p></div>`;
+    if (save.trophies != null && m.trophies > save.trophies) { toast("🏆 Your class defeated the Time Titan! A bigger one has arrived."); confetti(120); SFX.win(); }
+    save.trophies = m.trophies; persist();
+  } catch (e) {}
+}
+
 /* ================= room ================= */
 function room() {
   document.body.classList.toggle("big", isHost());
@@ -639,7 +712,7 @@ function room() {
   $("main").innerHTML = `<div class="stage" id="stage"></div><div class="team" id="team" aria-label="Team"></div><div class="panel" id="panel"></div>`;
   S.teamSig = ""; S.feedId = null; S.powSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null; S.fxId = undefined; S.rage = 0; S.stats = { hits: 0, first: 0, crits: 0, xp: 0 };
 }
-function startPolling() { stopPolling(); const loop = async () => { await poll(); if (save.code) S.timer = setTimeout(loop, (S.st && (S.st.phase === "question" || S.st.phase === "result") ? 1000 : 2000) + Math.random() * 300); }; S.timer = setTimeout(loop, 800); S.tick = setInterval(drawTimer, 200); }
+function startPolling() { stopPolling(); const loop = async () => { await poll(); if (save.code) S.timer = setTimeout(loop, (S.st && (S.st.phase === "question" || S.st.phase === "result" || S.st.phase === "finish") ? 1000 : 2000) + Math.random() * 300); }; S.timer = setTimeout(loop, 800); S.tick = setInterval(drawTimer, 200); }
 function stopPolling() { clearTimeout(S.timer); clearInterval(S.tick); S.timer = null; $("net").hidden = true; }
 async function poll() {
   const seq = ++S.seq;
@@ -650,11 +723,12 @@ function apply(st, seq) {
   if (!save.code || seq < S.applied) return; S.applied = seq;
   if (!st || !st.ok) return leaveRoom("That team has finished. Start a new one or join another.");
   if (save.role === "player" && st.you == null) return leaveRoom("You’re no longer in that team. Join again with the code.");
-  if (st.v !== 4) { stopPolling(); $("main").innerHTML = `<div class="panel" style="border-radius:24px"><h2 class="big-msg">This game needs an update</h2><p>Teacher: open the newest monster-raid-setup.txt, paste it into the Supabase SQL Editor and click Run. Then refresh this page.</p></div>`; return; }
+  if (st.v !== 6) { stopPolling(); $("main").innerHTML = `<div class="panel" style="border-radius:24px"><h2 class="big-msg">This game needs an update</h2><p>Teacher: open the newest monster-raid-setup.txt, paste it into the Supabase SQL Editor and click Run. Then refresh this page.</p></div>`; return; }
   const prev = S.st; S.st = st; S.leftAt = performance.now(); feedFx(st, prev);
   if (st.fx && st.fx.id !== S.fxId) {
     S.fxId = st.fx.id;
-    if (prev && st.phase === "question" && POWERS[st.fx.kind]) { toast(POWERS[st.fx.kind].icon + " " + st.fx.name + " " + POWERS[st.fx.kind].toast); SFX.power(); }
+    const k = st.fx.kind;
+    if (prev && st.phase === "question" && (POWERS[k] || FX[k])) { toast(POWERS[k] ? POWERS[k].icon + " " + st.fx.name + " " + POWERS[k].toast : FX[k](st.fx)); SFX.power(); }
   } else if (!st.fx) S.fxId = 0;
   const pm = prev && prev.players.find((p) => p.slot === st.you), nm = st.players.find((p) => p.slot === st.you);
   if (pm && nm && nm.power && !pm.power && prev.phase === "question" && st.phase === "question" && POWERS[nm.power]) { toast("You earned a power-up: " + POWERS[nm.power].icon + " " + POWERS[nm.power].name); SFX.power(); }
@@ -664,17 +738,19 @@ function apply(st, seq) {
 }
 
 function onPhase(st, prev) {
-  closeCoach(); S.aimFire = null;
+  closeCoach(); S.aimFire = null; $("aimBox").hidden = true; $("aimBox").innerHTML = ""; clearInterval(S.finLoop); S.finTap = null;
   if (st.phase === "lobby") { stageLobby(st); S.canStart = null; Music.stop(); return; }
   if (!$("bossWrap") || !prev || prev.boss !== st.boss || prev.phase === "lobby" || (prev.phase === "over" && st.phase === "question")) stageBattle(st);
   if (st.phase === "question") {
     const m = me(); S.my = { qi: m ? m.hits : 0, tries: 0, level: 0, help: false }; S.powSig = ""; S.tpMult = 1;
     if (st.round === 1) { SFX.start(); S.stats = { hits: 0, first: 0, crits: 0, xp: 0 }; S.rage = 0; S.xpKey = ""; intro(st); }
-    else if (EVENTS[st.event]) { const E = EVENTS[st.event]; banner(E.name); toast(E.icon + " " + E.name + " " + E.desc); SFX.power(); }
+    else if (EVENTS[st.event]) { const E = EVENTS[st.event]; banner(E.special ? "SPECIAL ATTACK!" : E.name); toast(E.icon + " " + E.name + " " + E.desc); SFX.power(); if (E.special) { const b = $("bossBob"); if (b) { b.classList.remove("lunge"); void b.offsetWidth; b.classList.add("lunge"); } quake(); } }
     else { banner("Wave " + st.round + "!"); taunt(st); }
+    if (st.grab != null) { const k = S.key, g = st.players.find((p) => p.slot === st.grab); if (g) setTimeout(() => { if (S.key === k && S.st.grab === g.slot) toast(g.slot === st.you ? "🆘 The monster has grabbed you! A teammate can set you free." : "🆘 The monster grabbed " + g.name + "! Tap their name to rescue them."); }, EVENTS[st.event] ? 3500 : 400); }
     if (isHost() && !Music.t) Music.start(false);
     if (isHost() || st.you == null) panelWatch(st); else nextQuestion(st);
   } else if (st.phase === "result") { playResult(st.last, S.key); panelResult(st); }
+  else if (st.phase === "finish") finishStart(st);
   else if (st.phase === "over") { playResult(st.last, S.key, true); S.canStart = null; Music.stop(); awardXP(st); }
 }
 /* ---------- stage ---------- */
@@ -685,7 +761,7 @@ function stageLobby(st) {
 }
 function stageBattle(st) {
   const s = $("stage"), b = BOSSES[st.boss]; s.style.setProperty("--tint", b.tint); s.classList.remove("rage", "last");
-  s.innerHTML = `${STAGE_BG}${SCENERY[st.boss]}<div class="stage-top"><div class="bossname">${esc(b.name)} <span class="etag" id="eventTag"></span></div><div class="bossstep">${esc(b.step)}</div>
+  s.innerHTML = `${STAGE_BG}${SCENERY[st.boss]}<div class="stage-top"><div class="bossname">${esc(b.name)} <span class="lvl" id="lvlTag"></span> <span class="etag" id="eventTag"></span></div><div class="bossstep">${esc(b.step)}</div>
       <div class="hp" role="img" aria-label="Monster health"><b id="hpGhost"></b><i id="hpBar"></i><span id="hpText"></span></div>
       <div class="meta"><span id="roundTxt"></span><span class="hearts" id="hearts" role="img"></span><span class="charge" title="Three perfect defences fire a Time Blast">Time Blast <i></i><i></i><i></i></span></div>
       <div class="tpower"><span class="tpx" id="tpTxt"></span><div class="tpbar"><i id="tpBar"></i></div><span class="tpnote" id="tpNote"></span></div></div>
@@ -695,7 +771,7 @@ function stageBattle(st) {
 function toast(text) { document.querySelectorAll(".toast").forEach((t) => t.remove()); const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), 3300); }
 function intro(st) {
   const s = $("stage"); if (!s) return; const d = document.createElement("div"); d.className = "intro";
-  d.innerHTML = `<div><div class="sub">${st.players.length > 1 ? "Your team of " + st.players.length + " faces" : "You face"}</div><div class="vs">${esc(BOSSES[st.boss].name)}</div><div class="sub">${esc(BOSSES[st.boss].step)}</div></div>`;
+  d.innerHTML = `<div><div class="sub">${st.players.length > 1 ? "Your team of " + st.players.length + " faces" : "You face"}</div><div class="vs">${esc(BOSSES[st.boss].name)}</div><div class="sub">Level ${st.level || st.players.length}: every extra hero makes it tougher</div><div class="sub">${esc(BOSSES[st.boss].step)}</div></div>`;
   s.appendChild(d); setTimeout(() => d.remove(), 2700);
 }
 function taunt(st) {
@@ -706,6 +782,20 @@ function sparks(n = 10) {
   const fx = $("fx"); if (!fx || reduceMotion) return;
   for (let i = 0; i < n; i++) { const p = document.createElement("div"); p.className = "spark"; fx.appendChild(p); const a = Math.random() * 6.283, r = 50 + Math.random() * 90;
     p.animate([{ transform: "translate(-50%,-50%) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px) scale(.2)`, opacity: 0 }], { duration: 500 + Math.random() * 300, easing: "ease-out" }).onfinish = () => p.remove(); }
+}
+/* the team finishing move: everyone taps together when the monster reaches zero */
+function finishStart(st) {
+  S.fin = { count: 0, pending: 0 }; banner("FINISH IT!"); SFX.combo(); const b = $("bossBob"); if (b) { b.classList.remove("bob", "hurt", "lunge"); b.classList.add("dizzy"); }
+  const player = !isHost() && st.you != null;
+  $("panel").innerHTML = `<div class="aim"><h2 class="big-msg">Team finishing move!</h2><p class="context" style="margin:0">The monster is wobbling. ${player ? "Tap as fast as you can to charge the final blast!" : "Everyone tap as fast as you can!"}</p>
+    <div class="bigdmg" id="finTotal">0</div><p class="note" style="margin:0">team taps</p>${player ? `<button class="btn tapbtn" id="tapBtn">TAP!</button><p class="note" id="finMine" style="margin:0">Your taps: 0</p>` : ""}</div>`;
+  if (!player) return;
+  S.finTap = (e) => { if (e) e.preventDefault(); if (!S.st || S.st.phase !== "finish") return; S.fin.count++; S.fin.pending++; $("finMine").textContent = "Your taps: " + S.fin.count; $("finTotal").textContent = (S.st.taps || 0) + S.fin.pending; tone(380 + Math.min(S.fin.count, 60) * 14, .04, "square", 0, .03); if (S.fin.count % 6 === 0) sparks(4); };
+  $("tapBtn").onpointerdown = S.finTap; $("tapBtn").onclick = (e) => e.preventDefault();
+  S.finLoop = setInterval(() => {
+    if (!S.fin.pending || !S.st || S.st.phase !== "finish") return; const n = S.fin.pending, seq = ++S.seq; S.fin.pending = 0;
+    rpc("raid_finish", { p_code: save.code, p_key: save.key, p_taps: n }).then((st) => apply(st, seq)).catch(() => { S.fin.pending += n; });
+  }, 600);
 }
 /* every hit by anyone on the team shows up as a shot flying at the monster */
 function feedFx(st, prev) {
@@ -735,13 +825,15 @@ function playResult(L, key, over) {
   if (L.blast > 0) setTimeout(() => { if (!alive()) return; banner("TIME BLAST!"); SFX.blast(); hurt(); sparks(22); quake(); floatDmg("−" + L.blast, true, true); }, 2300);
   if (over) setTimeout(() => {
     if (!alive()) return; const b = $("bossBob"); if (!b) return; b.classList.remove("bob", "hurt", "lunge");
-    if (L.stars > 0) { b.classList.add("dead"); SFX.win(); confetti(90); banner("MONSTER DEFEATED!"); sparks(24); for (let i = 0; i < L.stars; i++) setTimeout(() => tone(880 + i * 220, .2, "triangle"), 900 + i * 350); }
+    b.classList.remove("dizzy");
+    if (L.stars > 0) { b.classList.add("dead"); SFX.win(); confetti(Math.min(240, 90 + (L.finish || 0))); banner(L.finish ? "TEAM FINISH! " + L.finish + " TAPS!" : "MONSTER DEFEATED!"); quake(); sparks(24); for (let i = 0; i < L.stars; i++) setTimeout(() => tone(880 + i * 220, .2, "triangle"), 900 + i * 350); }
     else if (L.ko) banner("Knocked out!"); else { b.classList.add("fled"); banner("It ran away!"); }
   }, L.blast > 0 ? 4000 : L.after === 0 ? 700 : 1900);
 }
 function drawTimer() {
   const st = S.st, bar = $("timerBar"); if (!st || !bar) return;
   const total = [0, 45, 45, 55, 60, 60][st.boss];
+  if (st.phase === "finish" && st.left != null) { const l = Math.max(0, st.left - (performance.now() - S.leftAt) / 1000); bar.style.width = l / 8 * 100 + "%"; $("timerTxt").textContent = "Tap! Tap! Tap!"; $("timer").classList.remove("low"); return; }
   if (st.phase !== "question" || st.left == null) { bar.style.width = "0%"; $("timerTxt").textContent = st.phase === "result" ? "Next wave coming…" : ""; $("timer").classList.remove("low"); return; }
   const left = Math.max(0, st.left - (performance.now() - S.leftAt) / 1000);
   bar.style.width = Math.min(100, left / total * 100) + "%"; $("timer").classList.toggle("low", left <= 10);
@@ -750,10 +842,11 @@ function drawTimer() {
 /* ---------- things that update every second ---------- */
 function live(st) {
   if (st.phase === "lobby") {
-    const n = st.players.length; if ($("lobbyCount")) $("lobbyCount").textContent = n === 0 ? "Waiting for heroes to join…" : n + (n === 1 ? " hero has" : " heroes have") + " joined";
+    const n = st.players.length; if ($("lobbyCount")) $("lobbyCount").textContent = n === 0 ? "Waiting for heroes to join…" : n + (n === 1 ? " hero has" : " heroes have") + " joined. More heroes means a bigger, tougher monster!";
   } else if ($("hpBar")) {
     const frac = st.max ? st.hp / st.max : 0, lvl = st.hp > 0 && frac <= .2 ? 2 : st.hp > 0 && frac <= .5 ? 1 : 0, stage = $("stage");
     $("hpBar").style.width = frac * 100 + "%"; $("hpGhost").style.width = frac * 100 + "%"; $("hpText").textContent = st.hp + " / " + st.max;
+    const lv = st.level || st.players.length || 1; $("lvlTag").textContent = "Level " + lv; $("bossWrap").style.setProperty("--grow", 1 + Math.min(lv - 1, 10) * 0.035);
     stage.classList.toggle("rage", lvl >= 1); stage.classList.toggle("last", lvl === 2);
     if (lvl > (S.rage || 0)) { S.rage = lvl; banner(lvl === 2 ? "Almost defeated!" : "It’s enraged!"); if (isHost() && Music.t && !Music.fast) Music.start(true); }
     else if (lvl < (S.rage || 0)) S.rage = lvl;
@@ -762,31 +855,34 @@ function live(st) {
     document.querySelectorAll(".charge i").forEach((el, i) => el.classList.toggle("on", i < st.charge));
     const n = st.players.length, h = st.players.filter((p) => p.done).length, mult = n && h >= n ? 2 : h > 0 && h * 2 >= n ? 1.5 : 1, inWave = st.phase === "question";
     $("tpTxt").textContent = inWave ? "Team power ×" + mult : ""; $("tpBar").style.width = (inWave && n ? h / n * 100 : 0) + "%";
-    $("tpNote").textContent = !inWave ? "" : n <= 1 ? (h ? "You’ve landed a hit: double damage!" : "Land a hit to double your damage and block the monster.") : h >= n ? "Every hero has landed a hit: double damage, and the monster’s attack will miss!" : h + " of " + n + " heroes have landed a hit. Get everyone hitting for ×2!";
+    $("tpNote").textContent = !inWave ? "" : n <= 1 ? (h ? "You’ve landed a hit: double damage!" : "Land a hit to double your damage and block the monster.") : h >= n ? "Every hero has landed a hit: double damage, and the monster’s attack will miss!" : h + " of " + n + " heroes have landed " + (st.event === "double" ? "two hits" : "a hit") + ". Get everyone hitting for ×2!";
     $("eventTag").textContent = inWave && EVENTS[st.event] ? EVENTS[st.event].icon + " " + EVENTS[st.event].name : "";
     if (inWave && mult > (S.tpMult || 1)) { S.tpMult = mult; banner("TEAM POWER ×" + mult + "!"); SFX.combo(); if (mult === 2) quake(); }
   }
   drawTeam(st); drawTimer();
+  if (st.phase === "finish" && $("finTotal")) $("finTotal").textContent = (st.taps || 0) + (S.fin ? S.fin.pending : 0);
   const cs = canStart(st);
   if ((st.phase === "lobby" || st.phase === "over") && cs !== S.canStart) { S.canStart = cs; st.phase === "lobby" ? panelLobby(st) : panelOver(st); }
   if (st.phase === "lobby" || st.phase === "over") updatePicker(st);
   if (st.phase === "question") {
     if (isHost() || st.you == null) { if ($("watchDmg")) $("watchDmg").textContent = st.wave_dmg; }
     else drawPower(st);
-    if (S.coachSlot != null) { const p = st.players.find((x) => x.slot === S.coachSlot); if (!p || p.hits !== S.coachHits) closeCoach(); }
+    if (S.coachSlot != null) { const p = st.players.find((x) => x.slot === S.coachSlot); if (!p || (S.rescue ? st.grab !== S.coachSlot : p.hits !== S.coachHits)) closeCoach(); }
+    const gn = $("grabNote"); if (gn) { const mine = st.grab != null && st.grab === st.you; if (mine !== !!gn.childElementCount) gn.innerHTML = mine ? `<div class="feedback show hint" style="margin:0 0 10px">🆘 <b>The monster has grabbed you!</b> Keep fighting. A teammate can set you free by tapping your name.</div>` : ""; }
   }
 }
 function drawTeam(st) {
   const inWave = st.phase === "question", m = me(), iHit = !isHost() && !!(m && m.done);
-  const sig = JSON.stringify([st.phase, st.you, st.players]); if (sig === S.teamSig && $("team").childElementCount) return; S.teamSig = sig;
+  const sig = JSON.stringify([st.phase, st.you, st.grab, st.players]); if (sig === S.teamSig && $("team").childElementCount) return; S.teamSig = sig;
   $("team").innerHTML = st.players.length ? st.players.map((p) => {
-    const mine = p.slot === st.you, cls = ["chip", mine ? "me" : "", inWave && p.done ? "done" : "", inWave && p.help ? "help" : ""].join(" ");
-    const status = !inWave ? "" : p.help ? "✋" : p.done ? "✓" + p.hits : `<span class="dots" aria-label="no hit yet"></span>`;
+    const mine = p.slot === st.you, cls = ["chip", mine ? "me" : "", inWave && p.done ? "done" : "", inWave && p.help ? "help" : "", inWave && st.grab === p.slot ? "grab" : ""].join(" ");
+    const grabbed = inWave && st.grab === p.slot;
+    const status = !inWave ? "" : grabbed ? "🆘" : p.help ? "✋" : p.done ? "✓" + p.hits : p.hits ? p.hits + "/2" : `<span class="dots" aria-label="no hit yet"></span>`;
     const fxi = (inWave && p.strike ? `<span class="fxi" title="Power Strike">⚡</span>` : "") + (inWave && p.shield ? `<span class="fxi" title="Team Shield">🛡️</span>` : "");
-    const canHelp = inWave && !mine && iHit;
-    return `<button class="${cls}" data-slot="${p.slot}" ${canHelp ? `aria-label="Help ${esc(p.name)}"` : "disabled"}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span>${fxi}<span class="st">${status}</span></button>`;
+    const canHelp = inWave && !mine && (iHit || grabbed);
+    return `<button class="${cls}" data-slot="${p.slot}" ${canHelp ? `aria-label="${grabbed ? "Rescue" : "Help"} ${esc(p.name)}"` : "disabled"}>${heroSVG(p.hero, "face")}<span class="fxi" title="${ROLES[p.role] ? ROLES[p.role].name : ""}">${ROLES[p.role] ? ROLES[p.role].icon : ""}</span><span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span>${fxi}<span class="st">${status}</span></button>`;
   }).join("") : `<span style="color:#fff; font-weight:800; padding:6px">No heroes yet</span>`;
-  document.querySelectorAll("#team .chip:not(:disabled)").forEach((b) => b.onclick = () => openCoach(+b.dataset.slot));
+  document.querySelectorAll("#team .chip:not(:disabled)").forEach((b) => b.onclick = () => (S.st.grab === +b.dataset.slot ? openRescue : openCoach)(+b.dataset.slot));
 }
 /* ---------- lobby and monster picker ---------- */
 function pickerHTML(st, can) {
@@ -836,11 +932,11 @@ function awardXP(st) {
 
 /* ---------- question ---------- */
 function lineHTML(q, level) { return `<div class="nl">${numberLine(q.line.stops, q.line.jumps, Math.min(level, q.line.max))}</div>`; }
-function nextQuestion(st) { S.my.tries = 0; S.my.level = 0; S.q = makeQuestion(st, st.you, S.my.qi); panelQuestion(st); }
+function nextQuestion(st) { S.my.tries = 0; S.my.level = myRole() === "scout" ? 1 : 0; S.q = makeQuestion(st, st.you, S.my.qi); panelQuestion(st); }
 function panelQuestion(st) {
-  const q = S.q, hideLine = st.boss === 5;
-  $("panel").innerHTML = `<div class="qtop"><span>${esc(BOSSES[st.boss].step)}</span><span>Your hit number ${S.my.qi + 1} this wave</span></div>
-    <p class="prompt">${q.prompt}</p><div id="lineBox">${hideLine ? `<button class="btn ghost small" id="showLine" style="margin-bottom:10px">Show a number line</button>` : lineHTML(q, 0)}</div><div id="countBox"></div>
+  const q = S.q, gob = S.st.event === "gobble", hideLine = st.boss === 5 || gob;
+  $("panel").innerHTML = `<div id="grabNote"></div><div class="qtop"><span>${esc(BOSSES[st.boss].step)}</span><span>Your hit number ${S.my.qi + 1} this wave</span></div>
+    <p class="prompt">${q.prompt}</p><div id="lineBox">${gob ? `<p class="note" style="margin:0 0 10px">😋 The Muncher ate your number line this wave!</p>` : hideLine ? `<button class="btn ghost small" id="showLine" style="margin-bottom:10px">Show a number line</button>` : lineHTML(q, S.my.level)}</div><div id="countBox">${!hideLine && S.my.level && q.count ? `<div class="count">Count on: ${q.count.map((c) => `<span>${c}</span>`).join("→")}</div>` : ""}</div>
     <div class="options">${q.options.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>
     <div id="fb" class="feedback" aria-live="polite"></div><div id="powerBox"></div>
     <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="helpBtn">${S.my.help ? "✋ Help is on the way. Tap to cancel" : "✋ Ask my team for help"}</button><span class="note" style="margin:0">Right first time = full power and a bigger gold zone</span></div>`;
@@ -857,16 +953,17 @@ function panelQuestion(st) {
       const first = S.my.tries === 0, gain = first ? 4 : 2; S.stats.hits++; if (first) S.stats.first++; S.stats.xp += gain; save.xp = (save.xp || 0) + gain; persist();
       aimGame(S.st.round, first);
     } else {
-      b.classList.add("wrong"); b.disabled = true; SFX.wrong(); S.my.tries++; S.my.level = Math.min(2, S.my.tries);
-      if (q.line.max) $("lineBox").innerHTML = lineHTML(q, S.my.level);
-      if (q.count) $("countBox").innerHTML = `<div class="count">Count on: ${q.count.map((c) => `<span>${c}</span>`).join("→")}</div>`;
+      b.classList.add("wrong"); b.disabled = true; SFX.wrong(); S.my.tries++; S.my.level = Math.min(2, S.my.tries + (myRole() === "scout" ? 1 : 0));
+      if (q.line.max && !gob) $("lineBox").innerHTML = lineHTML(q, S.my.level);
+      if (q.count && !gob) $("countBox").innerHTML = `<div class="count">Count on: ${q.count.map((c) => `<span>${c}</span>`).join("→")}</div>`;
       const f = $("fb"); f.className = "feedback show hint"; f.innerHTML = `<b>Not quite.</b> ${esc(q.hint)} Have another look, then try again for a half-power hit.`;
       const rest = [...document.querySelectorAll(".opt:not(.wrong)")]; rest.forEach((x) => { x.disabled = true; x.classList.add("locked"); });
       setTimeout(() => rest.forEach((x) => { if (document.body.contains(x)) { x.disabled = false; x.classList.remove("locked"); } }), 2500);
     }
   });
 }
-const hitValue = (first, aim) => (first ? [10, 12, 15] : [5, 6, 8])[aim || 0];
+const hitValue = (first, aim, role) => (first ? [10, 12, 15] : [5, 6, 8])[aim || 0] + (role === "striker" && aim === 2 ? (first ? 5 : 3) : 0);
+const myRole = () => (me() && me().role) || save.cls || "striker";
 function sector(a0, a1, r) {
   const p = (a) => [100 + r * Math.sin(a * Math.PI / 180), 100 - r * Math.cos(a * Math.PI / 180)], [x0, y0] = p(a0), [x1, y1] = p(a1);
   return `M100,100 L${x0},${y0} A${r},${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1},${y1} Z`;
@@ -875,7 +972,7 @@ function sector(a0, a1, r) {
 function aimGame(round, first) {
   const left = S.st.left - (performance.now() - S.leftAt) / 1000;
   const finish = (aim) => {
-    S.aimFire = null; S.my.aim = aim;
+    S.aimFire = null; S.my.aim = aim; $("aimBox").hidden = true; $("aimBox").innerHTML = "";
     if (aim === 2) { S.stats.crits++; S.stats.xp += 1; save.xp = (save.xp || 0) + 1; persist(); }
     if (S.st && S.st.phase === "question" && S.st.round === round) { S.my.qi++; S.my.help = false; sendHit(round, first, aim, 0); nextQuestion(S.st); }
   };
@@ -884,29 +981,33 @@ function aimGame(round, first) {
   const weak = S.st.event === "weak", target = S.q.aimAt, perfect = (first ? 15 : 10) * (weak ? 2 : 1), good = (first ? 40 : 28) * (weak ? 1.5 : 1);
   const tk = Array.from({ length: 60 }, (_, i) => { const a = i * 6 * Math.PI / 180, big = i % 5 === 0, r1 = big ? 78 : 84; return `<line x1="${100 + r1 * Math.sin(a)}" y1="${100 - r1 * Math.cos(a)}" x2="${100 + 90 * Math.sin(a)}" y2="${100 - 90 * Math.cos(a)}" stroke="#EFF7F1" stroke-width="${big ? 3 : 1}" opacity="${big ? .9 : .5}"/>`; }).join("");
   const nums = [12, 3, 6, 9].map((n) => { const a = n * 30 * Math.PI / 180; return `<text x="${100 + 64 * Math.sin(a)}" y="${100 - 64 * Math.cos(a) + 7}" text-anchor="middle" font-family="Lilita One, Arial" font-size="20" fill="#EFF7F1">${n}</text>`; }).join("");
-  $("panel").innerHTML = `<div class="aim"><h2 class="big-msg">Correct! Aim your hit</h2>
-    <p class="context" style="margin:0">Stop the hand in the gold zone at <b>${S.q.aimLabel}</b> for a critical hit.${first ? "" : " The zone is smaller on a second try."}</p>
+  const slow = !save.aimSeen, speed = (slow ? 0.085 : 0.17) * (S.st.event === "warp" ? 1.9 : 1);
+  $("aimBox").hidden = false;
+  $("aimBox").innerHTML = `<div class="sheet aim" role="dialog" aria-modal="true" aria-label="Aim your hit"><h2 class="big-msg">Correct! Aim your hit</h2>
+    <p class="context" style="margin:0">The white hand spins around the clock. Tap <b>FIRE</b>, or anywhere on the screen, when it points at the gold slice.${slow ? " It’s slow this first time so you can practise." : ""}</p>
+    <div class="legend"><span><i style="background:#F2B632"></i>Gold slice: critical hit, ${hitValue(first, 2, myRole())} power</span><span><i style="background:#3FBF8F"></i>Green slice: strong hit, ${hitValue(first, 1)} power</span><span><i style="background:#12292B"></i>Anywhere else: normal hit, ${hitValue(first, 0)} power</span></div>
     <svg id="aimDial" viewBox="0 0 200 200" role="img" aria-label="Aiming clock"><circle cx="100" cy="100" r="97" fill="#F2B632"/><circle cx="100" cy="100" r="91" fill="#12292B"/>
       <path d="${sector(target - good, target + good, 91)}" fill="#3FBF8F" opacity=".55"/><path d="${sector(target - perfect, target + perfect, 91)}" fill="#F2B632"/>${tk}${nums}
       <g id="aimHand"><line x1="100" y1="100" x2="100" y2="16" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/><circle cx="100" cy="16" r="7" fill="#FFFFFF"/></g><circle cx="100" cy="100" r="9" fill="#F2B632" stroke="#12292B" stroke-width="3"/></svg>
     <div class="verdict" id="verdict" aria-live="polite"></div><button class="btn fire" id="fireBtn">FIRE!</button></div>`;
   const hand = $("aimHand"), t0 = performance.now(); let ang = (target + 140 + Math.random() * 80) % 360, last = t0, running = true, raf = 0;
-  const frame = (t) => { if (!running || !document.body.contains(hand)) return; ang = (ang + (t - last) * 0.17) % 360; last = t; hand.setAttribute("transform", `rotate(${ang} 100 100)`); raf = requestAnimationFrame(frame); };
+  const frame = (t) => { if (!running || !document.body.contains(hand)) return; ang = (ang + (t - last) * speed) % 360; last = t; hand.setAttribute("transform", `rotate(${ang} 100 100)`); raf = requestAnimationFrame(frame); };
   hand.setAttribute("transform", `rotate(${ang} 100 100)`); raf = requestAnimationFrame((t) => { last = t; frame(t); });
   const fire = (auto) => {
     if (!running || (!auto && performance.now() - t0 < 350)) return; running = false; cancelAnimationFrame(raf); clearTimeout(timer);
+    if (!auto && !save.aimSeen) { save.aimSeen = true; persist(); }
     let d = Math.abs(ang - target) % 360; if (d > 180) d = 360 - d; const aim = d <= perfect ? 2 : d <= good ? 1 : 0, v = $("verdict");
     if ($("fireBtn")) $("fireBtn").disabled = true;
-    if (v) { v.className = "verdict " + ["miss", "good", "crit"][aim]; v.textContent = aim === 2 ? "CRITICAL HIT! " + hitValue(first, 2) + " power" : aim === 1 ? "Strong hit! " + hitValue(first, 1) + " power" : "Hit! " + hitValue(first, 0) + " power"; }
+    if (v) { v.className = "verdict " + ["miss", "good", "crit"][aim]; v.textContent = aim === 2 ? "CRITICAL HIT! " + hitValue(first, 2, myRole()) + " power" : aim === 1 ? "Strong hit! " + hitValue(first, 1) + " power" : "Hit! " + hitValue(first, 0) + " power"; }
     if (aim === 2) { $("aimDial").classList.add("crit"); [784, 1047, 1319, 1568].forEach((f, i) => tone(f, .14, "triangle", i * .06)); } else if (aim === 1) SFX.right(); else tone(300, .15, "sine", 0, .05);
     setTimeout(() => finish(aim), 800);
   };
-  const timer = setTimeout(() => fire(true), Math.max(800, Math.min(5000, (left - 2.2) * 1000)));
-  S.aimFire = () => fire(false); $("fireBtn").onclick = S.aimFire; $("aimDial").onpointerdown = S.aimFire; $("fireBtn").focus({ preventScroll: true });
+  const timer = setTimeout(() => fire(true), Math.max(800, Math.min(slow ? 9000 : 5000, (left - 2.2) * 1000)));
+  S.aimFire = () => fire(false); $("aimBox").onpointerdown = (e) => { e.preventDefault(); if (S.aimFire) S.aimFire(); }; $("fireBtn").onclick = () => { if (S.aimFire) S.aimFire(); }; $("fireBtn").focus({ preventScroll: true });
 }
-async function sendHit(round, first, aim, attempt) {
-  try { const seq = ++S.seq; apply(await rpc("raid_hit", { p_code: save.code, p_key: save.key, p_round: round, p_first: first, p_aim: aim }), seq); }
-  catch (e) { if (attempt < 3 && S.st && S.st.phase === "question" && S.st.round === round) setTimeout(() => sendHit(round, first, aim, attempt + 1), 600); }
+async function sendHit(round, first, aim, attempt, rescue = false) {
+  try { const seq = ++S.seq; apply(await rpc("raid_hit", { p_code: save.code, p_key: save.key, p_round: round, p_first: first, p_aim: aim, p_rescue: rescue }), seq); }
+  catch (e) { if (attempt < 3 && S.st && S.st.phase === "question" && S.st.round === round) setTimeout(() => sendHit(round, first, aim, attempt + 1, rescue), 600); }
 }
 function panelWatch(st) {
   const b = BOSSES[st.boss];
@@ -920,24 +1021,50 @@ function openCoach(slot) {
   const q = makeQuestion(st, slot, p.hits); S.coachSlot = slot; S.coachHits = p.hits; SFX.click();
   $("coach").innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Help ${esc(p.name)}"><h2 class="big-msg">Help ${esc(p.name)}</h2>
     <p class="context">This is the question ${esc(p.name)} is working on. Go and sit with them. Don’t say the answer: ask these coaching questions instead.</p>
-    <p class="prompt">${q.prompt}</p>${lineHTML(q, 0)}<ol class="tips">${COACH[q.kind].map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
+    <p class="prompt">${q.prompt}</p>${st.event === "gobble" ? "" : lineHTML(q, myRole() === "scout" ? 1 : 0)}<ol class="tips">${COACH[q.kind].map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
     <div class="row"><button class="btn" id="coachClose">Back to the battle</button></div></div>`;
   $("coach").hidden = false; $("coachClose").onclick = closeCoach; $("coachClose").focus();
 }
-function closeCoach() { S.coachSlot = null; $("coach").hidden = true; $("coach").innerHTML = ""; }
+function openRescue(slot) {
+  const st = S.st, p = st.players.find((x) => x.slot === slot); if (!p || st.phase !== "question" || st.grab !== slot) return;
+  const q = makeQuestion(st, slot, 900 + st.round), round = st.round; let tries = 0; S.coachSlot = slot; S.rescue = true; SFX.click();
+  $("coach").innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Rescue ${esc(p.name)}" style="border-color:var(--ember)"><h2 class="big-msg">Rescue ${esc(p.name)}!</h2>
+    <p class="context">The monster has grabbed ${esc(p.name)}. Answer this to set them free. A rescue hit does double damage!</p>
+    <p class="prompt">${q.prompt}</p>${st.event === "gobble" ? "" : lineHTML(q, myRole() === "scout" ? 1 : 0)}
+    <div class="options">${q.options.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div><div id="rfb" class="feedback" aria-live="polite"></div>
+    <div class="row"><button class="btn ghost" id="coachClose">Back to my question</button></div></div>`;
+  $("coach").hidden = false; $("coachClose").onclick = closeCoach;
+  $("coach").querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+    const ok = b.dataset.v === q.answer; logAnswer(q, b.dataset.v, ok);
+    if (ok) {
+      SFX.right(); const first = tries === 0; S.stats.hits++; if (first) S.stats.first++; S.stats.xp += 6; save.xp = (save.xp || 0) + 6; persist();
+      closeCoach(); if (S.st && S.st.phase === "question" && S.st.round === round) { S.my.qi++; sendHit(round, first, 1, 0, true); nextQuestion(S.st); }
+    } else {
+      b.classList.add("wrong"); b.disabled = true; SFX.wrong(); tries++;
+      const f = $("rfb"); f.className = "feedback show hint"; f.innerHTML = `<b>Not quite.</b> ${esc(q.hint)}`;
+      const rest = [...$("coach").querySelectorAll(".opt:not(.wrong)")]; rest.forEach((x) => { x.disabled = true; x.classList.add("locked"); });
+      setTimeout(() => rest.forEach((x) => { if (document.body.contains(x)) { x.disabled = false; x.classList.remove("locked"); } }), 2500);
+    }
+  });
+}
+function closeCoach() { S.rescue = false; S.coachSlot = null; $("coach").hidden = true; $("coach").innerHTML = ""; }
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("coach").hidden) closeCoach();
   if (S.aimFire && $("coach").hidden && (e.key === " " || e.key === "Enter")) { e.preventDefault(); S.aimFire(); }
+  else if (S.finTap && S.st && S.st.phase === "finish" && e.key === " " && !e.repeat) S.finTap(e);
 });
 $("coach").addEventListener("click", (e) => { if (e.target === $("coach")) closeCoach(); });
 
 /* ---------- results ---------- */
 function resultRows(L) {
-  const miss = L.total - L.hitters, rows = [["−" + L.dmg, "damage dealt this wave"], [L.hitters + " of " + L.total, L.total === 1 ? (L.hitters ? "You landed a hit" : "No hit landed") : "heroes landed a hit"]];
-  if (L.after > 0 || L.lost) {
-    if (L.perfect) rows.push(["🛡", L.total > 1 ? "Perfect defence! Every hero landed a hit, so the monster’s attack missed." : "Perfect defence! The monster’s attack missed."]);
-    else if (L.shielded) rows.push(["🛡️", "A Team Shield blocked the monster’s attack."]);
-    else if (L.lost) rows.push(["💔 −" + L.lost, (miss === 1 ? "1 hero" : miss + " heroes") + " couldn’t land a hit, so the monster struck back. Help each other next wave!"]);
+  const miss = L.total - L.hitters, two = L.event === "double";
+  const rows = [["−" + L.dmg, "damage dealt this wave"], [L.hitters + " of " + L.total, L.total === 1 ? (L.hitters ? "You landed " + (two ? "two hits" : "a hit") : "Not enough hits landed") : "heroes landed " + (two ? "two hits" : "a hit")]];
+  if (L.lost) {
+    const why = []; if (miss > 0) why.push((miss === 1 ? "1 hero" : miss + " heroes") + " didn’t land " + (two ? "two hits" : "a hit")); if (L.captive) why.push("nobody rescued the captured hero");
+    rows.push(["💔 −" + L.lost, "The monster struck back because " + why.join(" and ") + "." + (L.event === "stampede" ? " The Stampede doubled it!" : "") + " Help each other next wave!"]);
+  } else if (L.after > 0) {
+    if (L.shielded) rows.push(["🛡️", "A Team Shield blocked the monster’s attack."]);
+    else if (L.perfect) rows.push(["🛡", L.total > 1 ? "Perfect defence! Every hero landed " + (two ? "two hits" : "a hit") + ", so the monster’s attack missed." : "Perfect defence! The monster’s attack missed."]);
   }
   if (L.blast) rows.push(["−" + L.blast, "Time Blast! Three perfect defences charged it up"]);
   return `<div class="sum">${rows.map(([n, t]) => `<span class="n">${esc(n)}</span><span class="t">${esc(t)}</span>`).join("")}</div>`;
@@ -957,10 +1084,11 @@ function panelOver(st) {
   $("panel").innerHTML = `<h2 class="big-msg">${won ? name + " is defeated!" : L.ko ? "Your team was knocked out!" : name + " ran away!"}</h2>${stars}
     <p style="font-weight:800; margin:8px 0 0">${won ? "Your team won in " + L.round + " wave" + (L.round === 1 ? "" : "s") + " with " + L.hearts + " of 6 hearts left." + (L.stars < 3 ? " Win in 6 waves or fewer for 3 stars." : " That’s a 3-star win!")
       : L.ko ? "The monster took all six hearts. Make sure every hero lands at least one hit each wave, then try again." : "It got away after " + MAX_ROUNDS + " waves. Get the whole team hitting for double damage, then try again."}</p>
-    ${mineStats}
+    ${won && L.finish != null ? `<p style="font-weight:800; margin:6px 0 0">Finishing move: ${L.finish} team taps charged the final blast!</p>` : ""}
+    ${mineStats}<div id="titanOver"></div>
     ${can ? `<h3 style="font-size:22px; margin-top:12px">${isHost() ? "Pick the next monster" : "Pick your team’s next monster"}</h3>${pickerHTML(st, true)}<div class="row"><button class="btn" id="start">Start the battle</button></div>`
           : `<p class="context" id="waitLead" style="margin-top:10px"></p>${pickerHTML(st, false)}`}`;
-  wirePicker(st); updatePicker(st);
+  wirePicker(st); updatePicker(st); titan($("titanOver"), (st.max || 0) - (st.hp || 0) + Math.min(L.finish || 0, 300));
   if ($("xpBar")) { const w = rk.hi ? ((save.xp || 0) - rk.lo) / (rk.hi - rk.lo) * 100 : 100; requestAnimationFrame(() => { if ($("xpBar")) $("xpBar").style.width = Math.max(4, Math.min(100, w)) + "%"; }); }
 }
 /* ================= go ================= */
