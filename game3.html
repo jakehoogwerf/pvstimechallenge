@@ -245,6 +245,17 @@ body.big .toast{font-size:28px; top:90px}
 .power.used{background:var(--panel-2); border-color:var(--line); box-shadow:none; color:var(--ink)}
 .power.used::after{display:none}
 .chip .fxi{font-size:14px; flex:0 0 auto}
+/* aiming clock */
+.aim{display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center}
+.aim svg{width:min(70vw,250px); height:auto; touch-action:manipulation; cursor:pointer; filter:drop-shadow(0 6px 0 rgba(0,0,0,.25))}
+.aim .fire{font-size:26px; padding:14px 46px; font-family:"Lilita One",Arial,sans-serif; letter-spacing:1px}
+.aim .verdict{font-family:"Lilita One",Arial,sans-serif; font-size:30px; min-height:1.2em; line-height:1.1}
+.aim .verdict.crit{color:var(--gold-dark); animation:slam .35s both}
+.aim .verdict.good{color:var(--mint)}
+.aim .verdict.miss{color:var(--muted)}
+.aim svg.crit{animation:critPulse .5s}
+@keyframes critPulse{30%{transform:scale(1.12); filter:drop-shadow(0 0 22px #F2B632)}}
+.shot.crit{width:36px; height:36px; margin:-18px 0 0 -18px; background:radial-gradient(circle,#fff 0 35%,#9FF2FF 62%,transparent 74%); box-shadow:0 0 20px 8px rgba(159,242,255,.85)}
 .xp{height:16px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:2px solid var(--line); margin-top:6px}
 .xp i{display:block; height:100%; background:linear-gradient(90deg,var(--mint),#7BE0B5); transition:width 1.2s ease-out .5s}
 .stars span{display:inline-block; animation:starIn .5s both}
@@ -520,7 +531,7 @@ function makeQuestion(st, slot) {
   for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
   prompt = prompt || `How long from <span class="tchip">${fmt(a)}</span> to <span class="tchip">${fmt(b)}</span>?`;
   const plain = kind === 5 ? "A battle starts at " + fmt(a) + " and lasts " + dur(d) + ". What time does it end?" : "How long from " + fmt(a) + " to " + fmt(b) + "?";
-  return { kind, fine, prompt, plain, answer, options: opts, line, hint, count };
+  return { kind, fine, prompt, plain, answer, options: opts, line, hint, count, aimAt: (norm(b) % 60) * 6, aimLabel: ":" + String(norm(b) % 60).padStart(2, "0") };
 }
 
 /* ================= talking to the game server ================= */
@@ -562,7 +573,7 @@ function home(msg = "") {
         <div class="box"><h3>Start a new team</h3><p>You’ll get a code to share. You can also battle on your own.</p><button class="btn" id="create">Make a team</button></div>
       </div>
       <div class="err" id="err" role="alert">${esc(msg)}</div>
-      <ol class="howto"><li>Everyone gets their own question with different numbers.</li><li>Lock in the right answer to charge your hit. First try is full power.</li><li>Finished? Tap a teammate to help them. If the whole team hits first time, the damage is doubled!</li><li>Use your power-ups: ⚡ doubles your hit, ❄️ adds time for everyone, 🛡️ rescues a second-try hit.</li></ol>
+      <ol class="howto"><li>Everyone gets their own question with different numbers.</li><li>Get the answer right, then stop the aiming clock in the gold zone for a critical hit. First try is full power.</li><li>Finished? Tap a teammate to help them. If the whole team hits first time, the damage is doubled!</li><li>Use your power-ups: ⚡ doubles your hit, ❄️ adds time for everyone, 🛡️ rescues a second-try hit.</li></ol>
       <p class="note">Teachers: <button class="linkbtn" id="bigscreen">open a big-screen room for the class</button></p>
     </div></div>`;
   const hash = (location.hash || "").replace("#", "").toUpperCase(); if (/^[A-Z]{4}$/.test(hash)) $("code").value = hash;
@@ -603,7 +614,7 @@ function room() {
   document.body.classList.toggle("big", isHost());
   $("codePill").hidden = false; $("codeTxt").textContent = save.code; $("leave").hidden = false; $("leave").textContent = isHost() ? "Close room" : "Leave team";
   $("main").innerHTML = `<div class="stage" id="stage"></div><div class="team" id="team" aria-label="Team"></div><div class="panel" id="panel"></div>`;
-  S.teamSig = ""; S.waitSig = ""; S.powSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null; S.fxId = undefined; S.rage = 0; S.stats = { hits: 0, first: 0, xp: 0 };
+  S.teamSig = ""; S.waitSig = ""; S.powSig = ""; S.key = ""; S.canStart = null; S.pickBoss = 0; S.st = null; S.fxId = undefined; S.rage = 0; S.stats = { hits: 0, first: 0, crits: 0, xp: 0 };
 }
 function startPolling() { stopPolling(); const loop = async () => { await poll(); if (save.code) S.timer = setTimeout(loop, (S.st && (S.st.phase === "question" || S.st.phase === "result") ? 1000 : 2000) + Math.random() * 300); }; S.timer = setTimeout(loop, 800); S.tick = setInterval(drawTimer, 200); }
 function stopPolling() { clearTimeout(S.timer); clearInterval(S.tick); S.timer = null; $("net").hidden = true; }
@@ -629,7 +640,7 @@ function apply(st, seq) {
 }
 
 function onPhase(st, prev) {
-  closeCoach();
+  closeCoach(); S.aimFire = null;
   if (st.phase === "lobby") { stageLobby(st); S.canStart = null; Music.stop(); }
   else {
     if (!$("bossWrap") || !prev || prev.boss !== st.boss || prev.phase === "lobby" || (prev.phase === "over" && st.phase === "question")) stageBattle(st);
@@ -638,7 +649,7 @@ function onPhase(st, prev) {
       S.q = st.you != null ? makeQuestion(st, st.you) : null;
       if (isHost() || st.you == null) panelWatch(st); else if (S.my.done) panelWaiting(st); else panelQuestion(st);
       S.powSig = "";
-      if (st.round === 1) { SFX.start(); S.stats = { hits: 0, first: 0, xp: 0 }; S.rage = 0; S.xpKey = ""; intro(st); } else taunt(st);
+      if (st.round === 1) { SFX.start(); S.stats = { hits: 0, first: 0, crits: 0, xp: 0 }; S.rage = 0; S.xpKey = ""; intro(st); } else taunt(st);
       if (isHost() && !Music.t) Music.start(false);
     } else if (st.phase === "result") { playResult(st.last, S.key); panelResult(st); }
     else if (st.phase === "over") { playResult(st.last, S.key, true); S.canStart = null; Music.stop(); awardXP(st); }
@@ -678,7 +689,7 @@ function sparks(n = 10) {
 function fireShots() {
   const boss = $("bossBob"); if (!boss || reduceMotion) return; const br = boss.getBoundingClientRect(), tx = br.left + br.width / 2, ty = br.top + br.height / 2;
   [...document.querySelectorAll('#team .chip[data-hit="1"]')].slice(0, 14).forEach((chip, i) => {
-    const cr = chip.getBoundingClientRect(), x = cr.left + 22, y = cr.top + cr.height / 2, el = document.createElement("div"); el.className = "shot"; document.body.appendChild(el);
+    const cr = chip.getBoundingClientRect(), x = cr.left + 22, y = cr.top + cr.height / 2, el = document.createElement("div"); el.className = "shot" + (chip.dataset.crit === "1" ? " crit" : ""); document.body.appendChild(el);
     el.animate([{ transform: `translate(${x}px,${y}px) scale(.5)` }, { transform: `translate(${tx}px,${ty}px) scale(1.5)` }], { duration: 430, delay: i * 60, easing: "cubic-bezier(.5,0,.9,.5)", fill: "both" }).onfinish = () => el.remove();
   });
 }
@@ -738,8 +749,8 @@ function drawTeam(st) {
     const mine = p.slot === st.you, cls = ["chip", mine ? "me" : "", inRound && p.done ? "done" : "", inRound && p.help ? "help" : ""].join(" ");
     const status = !inRound ? "" : p.done ? "✓" : p.help ? "✋" : `<span class="dots" aria-label="working"></span>`;
     const canHelp = inRound && !mine && !p.done && iAmDone;
-    const fxi = (inRound && p.boost ? `<span class="fxi" title="Power Strike">⚡</span>` : "") + (inRound && p.shield ? `<span class="fxi" title="Team Shield">🛡️</span>` : "");
-    return `<button class="${cls}" data-slot="${p.slot}" data-hit="${p.done ? 1 : 0}" ${canHelp ? "" : "disabled"} ${canHelp ? `aria-label="Help ${esc(p.name)}"` : ""}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span>${fxi}<span class="st">${status}</span></button>`;
+    const fxi = (inRound && p.boost ? `<span class="fxi" title="Power Strike">⚡</span>` : "") + (inRound && p.shield ? `<span class="fxi" title="Team Shield">🛡️</span>` : "") + (inRound && p.aim === 2 ? `<span class="fxi" title="Critical hit">🎯</span>` : "");
+    return `<button class="${cls}" data-slot="${p.slot}" data-hit="${p.done ? 1 : 0}" data-crit="${p.aim === 2 ? 1 : 0}" ${canHelp ? "" : "disabled"} ${canHelp ? `aria-label="Help ${esc(p.name)}"` : ""}>${heroSVG(p.hero, "face")}<span class="nm">${esc(p.name)}${mine ? " (you)" : ""}</span>${fxi}<span class="st">${status}</span></button>`;
   }).join("") : `<span style="color:#fff; font-weight:800; padding:6px">No heroes yet</span>`;
   document.querySelectorAll("#team .chip:not(:disabled)").forEach((b) => b.onclick = () => openCoach(+b.dataset.slot));
 }
@@ -799,7 +810,7 @@ function panelQuestion(st) {
     <p class="prompt">${q.prompt}</p><div id="lineBox">${hideLine ? `<button class="btn ghost small" id="showLine" style="margin-bottom:10px">Show a number line</button>` : lineHTML(q, 0)}</div><div id="countBox"></div>
     <div class="options">${q.options.map((o) => `<button class="opt" data-v="${esc(o)}">${esc(o)}</button>`).join("")}</div>
     <div id="fb" class="feedback" aria-live="polite"></div><div id="powerBox"></div>
-    <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="helpBtn">✋ Ask my team for help</button><span class="note" style="margin:0">First try = full power</span></div>`;
+    <div class="row" style="justify-content:space-between"><button class="btn ghost small" id="helpBtn">✋ Ask my team for help</button><span class="note" style="margin:0">First try = full power and a bigger gold zone</span></div>`;
   if ($("showLine")) $("showLine").onclick = () => { $("lineBox").innerHTML = lineHTML(q, S.my.level); };
   $("helpBtn").onclick = async () => {
     S.my.help = !S.my.help; $("helpBtn").textContent = S.my.help ? "✋ Help is on the way. Tap to cancel" : "✋ Ask my team for help"; SFX.click();
@@ -811,7 +822,7 @@ function panelQuestion(st) {
       b.classList.add("right"); document.querySelectorAll(".opt").forEach((x) => x.disabled = true); SFX.right();
       S.my.done = true; S.my.first = S.my.tries === 0; S.hits++;
       const gain = S.my.first ? 10 : 5; S.stats.hits++; if (S.my.first) S.stats.first++; S.stats.xp += gain; save.xp = (save.xp || 0) + gain; persist();
-      const round = st.round; panelWaiting(S.st); sendAnswer(round, S.my.first, 0);
+      aimGame(st.round, S.my.first);
     } else {
       b.classList.add("wrong"); b.disabled = true; SFX.wrong(); S.my.tries++; S.my.level = Math.min(2, S.my.tries);
       if (q.line.max) $("lineBox").innerHTML = lineHTML(q, S.my.level);
@@ -820,13 +831,52 @@ function panelQuestion(st) {
     }
   });
 }
-async function sendAnswer(round, first, attempt) {
-  try { const seq = ++S.seq; apply(await rpc("raid_answer", { p_code: save.code, p_key: save.key, p_round: round, p_first: first }), seq); }
-  catch (e) { if (attempt < 4 && S.st && S.st.phase === "question" && S.st.round === round) setTimeout(() => sendAnswer(round, first, attempt + 1), 700); }
+const hitValue = (first, aim) => (first ? [10, 12, 15] : [5, 6, 8])[aim || 0];
+function sector(a0, a1, r) {
+  const p = (a) => [100 + r * Math.sin(a * Math.PI / 180), 100 - r * Math.cos(a * Math.PI / 180)], [x0, y0] = p(a0), [x1, y1] = p(a1);
+  return `M100,100 L${x0},${y0} A${r},${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1},${y1} Z`;
+}
+/* After a right answer: stop the clock hand in the gold zone for a critical hit */
+function aimGame(round, first) {
+  const left = S.st.left - (performance.now() - S.leftAt) / 1000;
+  const finish = (aim) => {
+    S.aimFire = null; S.my.aim = aim;
+    if (aim === 2) { S.stats.crits++; S.stats.xp += 3; save.xp = (save.xp || 0) + 3; persist(); }
+    if (S.st && S.st.phase === "question" && S.st.round === round) { panelWaiting(S.st); sendAnswer(round, first, 0, aim); }
+  };
+  if (reduceMotion) return finish(1);
+  if (left < 3.5) return finish(0);
+  const target = S.q.aimAt, perfect = first ? 15 : 10, good = first ? 40 : 28;
+  const tk = Array.from({ length: 60 }, (_, i) => { const a = i * 6 * Math.PI / 180, big = i % 5 === 0, r1 = big ? 78 : 84; return `<line x1="${100 + r1 * Math.sin(a)}" y1="${100 - r1 * Math.cos(a)}" x2="${100 + 90 * Math.sin(a)}" y2="${100 - 90 * Math.cos(a)}" stroke="#EFF7F1" stroke-width="${big ? 3 : 1}" opacity="${big ? .9 : .5}"/>`; }).join("");
+  const nums = [12, 3, 6, 9].map((n) => { const a = n * 30 * Math.PI / 180; return `<text x="${100 + 64 * Math.sin(a)}" y="${100 - 64 * Math.cos(a) + 7}" text-anchor="middle" font-family="Lilita One, Arial" font-size="20" fill="#EFF7F1">${n}</text>`; }).join("");
+  $("panel").innerHTML = `<div class="aim"><h2 class="big-msg">Correct! Now aim your hit</h2>
+    <p class="context" style="margin:0">Stop the hand in the gold zone at <b>${S.q.aimLabel}</b> for a critical hit.${first ? "" : " The zone is smaller on a second try."}</p>
+    <svg id="aimDial" viewBox="0 0 200 200" role="img" aria-label="Aiming clock"><circle cx="100" cy="100" r="97" fill="#F2B632"/><circle cx="100" cy="100" r="91" fill="#12292B"/>
+      <path d="${sector(target - good, target + good, 91)}" fill="#3FBF8F" opacity=".55"/><path d="${sector(target - perfect, target + perfect, 91)}" fill="#F2B632"/>${tk}${nums}
+      <g id="aimHand"><line x1="100" y1="100" x2="100" y2="16" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/><circle cx="100" cy="16" r="7" fill="#FFFFFF"/></g><circle cx="100" cy="100" r="9" fill="#F2B632" stroke="#12292B" stroke-width="3"/></svg>
+    <div class="verdict" id="verdict" aria-live="polite"></div><button class="btn fire" id="fireBtn">FIRE!</button></div>`;
+  const hand = $("aimHand"), t0 = performance.now(); let ang = (target + 140 + Math.random() * 80) % 360, last = t0, running = true, raf = 0;
+  const frame = (t) => { if (!running || !document.body.contains(hand)) return; ang = (ang + (t - last) * 0.17) % 360; last = t; hand.setAttribute("transform", `rotate(${ang} 100 100)`); raf = requestAnimationFrame(frame); };
+  hand.setAttribute("transform", `rotate(${ang} 100 100)`); raf = requestAnimationFrame((t) => { last = t; frame(t); });
+  const fire = (auto) => {
+    if (!running || (!auto && performance.now() - t0 < 350)) return; running = false; cancelAnimationFrame(raf); clearTimeout(timer);
+    let d = Math.abs(ang - target) % 360; if (d > 180) d = 360 - d; const aim = d <= perfect ? 2 : d <= good ? 1 : 0, v = $("verdict");
+    if ($("fireBtn")) $("fireBtn").disabled = true;
+    if (v) { v.className = "verdict " + ["miss", "good", "crit"][aim]; v.textContent = aim === 2 ? "CRITICAL HIT! " + hitValue(first, 2) + " power" : aim === 1 ? "Strong hit! " + hitValue(first, 1) + " power" : "Hit! " + hitValue(first, 0) + " power"; }
+    if (aim === 2) { $("aimDial").classList.add("crit"); [784, 1047, 1319, 1568].forEach((f, i) => tone(f, .14, "triangle", i * .06)); } else if (aim === 1) SFX.right(); else tone(300, .15, "sine", 0, .05);
+    setTimeout(() => finish(aim), 800);
+  };
+  const timer = setTimeout(() => fire(true), Math.max(800, Math.min(5000, (left - 2.2) * 1000)));
+  S.aimFire = () => fire(false); $("fireBtn").onclick = S.aimFire; $("aimDial").onpointerdown = S.aimFire; $("fireBtn").focus({ preventScroll: true });
+}
+async function sendAnswer(round, first, attempt, aim = 0) {
+  const args = { p_code: save.code, p_key: save.key, p_round: round, p_first: first }; if (!S.noAim) args.p_aim = aim;
+  try { const seq = ++S.seq; apply(await rpc("raid_answer", args), seq); }
+  catch (e) { if (!S.noAim && attempt === 0) S.noAim = true; if (attempt < 4 && S.st && S.st.phase === "question" && S.st.round === round) setTimeout(() => sendAnswer(round, first, attempt + 1, aim), attempt === 0 ? 50 : 700); }
 }
 function panelWaiting(st) {
   const full = S.my.first;
-  $("panel").innerHTML = `<h2 class="big-msg">Locked in! ✓</h2><p style="margin:0; font-weight:800">${S.my.resumed ? "Your hit is ready." : full ? "Full power hit ready (10)." : "Half power hit ready (5). Next time, check with the number line first."}</p><div id="waitBox"></div><div id="powerBox"></div>`;
+  $("panel").innerHTML = `<h2 class="big-msg">Locked in! ✓</h2><p style="margin:0; font-weight:800">${S.my.resumed ? "Your hit is ready." : (S.my.aim === 2 ? "Critical hit" : S.my.aim === 1 ? "Strong hit" : full ? "Full power hit" : "Half power hit") + " ready: " + hitValue(full, S.my.aim) + " power." + (full ? "" : " Next time, check with the number line first.")}</p><div id="waitBox"></div><div id="powerBox"></div>`;
   S.powSig = "";
   S.waitSig = ""; drawWaiting(st);
 }
@@ -859,7 +909,10 @@ function openCoach(slot) {
   $("coach").hidden = false; $("coachClose").onclick = closeCoach; $("coachClose").focus();
 }
 function closeCoach() { S.coachSlot = null; $("coach").hidden = true; $("coach").innerHTML = ""; }
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("coach").hidden) closeCoach(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("coach").hidden) closeCoach();
+  if (S.aimFire && $("coach").hidden && (e.key === " " || e.key === "Enter")) { e.preventDefault(); S.aimFire(); }
+});
 $("coach").addEventListener("click", (e) => { if (e.target === $("coach")) closeCoach(); });
 
 /* ---------- results ---------- */
@@ -868,6 +921,7 @@ function resultRows(L) {
   const rows = [[L.n1 + " of " + L.total, solo ? (L.n1 ? "You hit first time" : "No first-time hit") : (L.n1 === 1 ? "hero hit first time" : "heroes hit first time")]];
   if (L.n2) rows.push([String(L.n2), L.n2 === 1 ? "hero hit at half power" : "heroes hit at half power"]);
   if (L.strikes) rows.push(["⚡ " + L.strikes, L.strikes === 1 ? "Power Strike doubled a hit" : "Power Strikes doubled hits"]);
+  if (L.crits) rows.push(["🎯 " + L.crits, L.crits === 1 ? "critical hit from the aiming clock" : "critical hits from the aiming clock"]);
   if (L.saved) rows.push(["🛡️ " + L.saved, L.saved === 1 ? "second-try hit saved by a Team Shield" : "second-try hits saved by Team Shields"]);
   rows.push(["×" + L.mult, perfect ? (solo ? "Perfect hit: double damage!" : "Perfect team: everyone hit first time, so double damage!") : L.mult > 1 ? "Team combo: half the team or more hit first time" : "No combo this round"]);
   rows.push(["−" + L.dmg, "damage to the monster"]);
@@ -883,8 +937,8 @@ function panelResult(st) {
 function panelOver(st) {
   const L = st.last || {}, won = L.stars > 0, can = canStart(st);
   const stars = won ? `<div class="stars" aria-label="${L.stars} out of 3 stars">${[1, 2, 3].map((i) => `<span class="${i <= L.stars ? "" : "off"}">★</span>`).join("")}</div>` : "";
-  const rk = rankOf(save.xp || 0), mineStats = !isHost() && st.you != null && S.stats ? `<div class="statgrid"><div><b>${S.stats.hits}</b>your hits</div><div><b>${S.stats.first}</b>first time</div><div><b>+${S.stats.xp}</b>XP earned</div><div><b>${save.xp || 0}</b>total XP</div></div>
-    <p style="margin:0; font-weight:900">Rank: ${esc(rk.name)}${rk.hi ? ` <span class="note" style="font-weight:800">(${rk.hi - (save.xp || 0)} XP to the next rank)</span>` : ""}</p><div class="xp"><i id="xpBar" style="width:0%"></i></div>` : "";
+  const rk = rankOf(save.xp || 0), mineStats = !isHost() && st.you != null && S.stats ? `<div class="statgrid"><div><b>${S.stats.hits}</b>your hits</div><div><b>${S.stats.first}</b>first time</div><div><b>+${S.stats.xp}</b>XP earned</div><div><b>${S.stats.crits}</b>critical hits</div></div>
+    <p style="margin:0; font-weight:900">Rank: ${esc(rk.name)} <span class="note" style="font-weight:800">(${save.xp || 0} XP${rk.hi ? ", " + (rk.hi - (save.xp || 0)) + " to the next rank" : ""})</span></p><div class="xp"><i id="xpBar" style="width:0%"></i></div>` : "";
   S.pickBoss = won ? Math.min(5, st.boss + 1) : st.boss;
   $("panel").innerHTML = `<h2 class="big-msg">${won ? esc(BOSSES[st.boss].name) + " is defeated!" : esc(BOSSES[st.boss].name) + " ran away!"}</h2>${stars}
     <p style="font-weight:800; margin:8px 0 0">${won ? "Your team won in " + L.round + " round" + (L.round === 1 ? "" : "s") + "." + (L.stars < 3 ? " Win in 5 rounds or fewer for 3 stars." : " That’s a 3-star win!") : "It got away after " + MAX_ROUNDS + " rounds. Help each other lock in first time, then try again."}</p>
