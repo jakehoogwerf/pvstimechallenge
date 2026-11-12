@@ -126,6 +126,10 @@ select:focus-visible{outline:4px solid var(--brass); outline-offset:2px}
         <span class="play">Play</span></div>
     </a>
   </div>
+  <section class="boards" id="titanSec" hidden aria-labelledby="tth">
+    <h2 id="tth">The Time Titan</h2>
+    <div class="bcard" id="titanCard"></div>
+  </section>
   <section class="boards" aria-labelledby="lbh">
     <h2 id="lbh">Class leaderboards</h2>
     <div class="bgrid">
@@ -166,6 +170,17 @@ async function show(game, which) {
       : `<p class="status">No times yet. Play to be the first!</p>`;
   } catch (e) { el.innerHTML = `<p class="status">The leaderboard didn’t load. Check the internet connection and refresh the page.</p>`; }
 }
+(async () => {
+  try {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/rpc/raid_mega_view", { method: "POST", headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" }, body: "{}" });
+    if (!res.ok) return; const m = await res.json(); if (!m || !m.ok) return;
+    const pct = Math.max(0, Math.min(100, m.hp / m.max * 100));
+    document.getElementById("titanCard").innerHTML = `<h3>Level ${m.level} Titan <span style="float:right">🏆 ${m.trophies} class ${m.trophies === 1 ? "trophy" : "trophies"}</span></h3>
+      <div style="position:relative; height:30px; border-radius:999px; overflow:hidden; background:#D3CBEA; border:3px solid #5B2A86"><div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#9C72DC,#5B3596)"></div><span style="position:absolute; inset:0; display:grid; place-items:center; font-weight:900; color:#fff; text-shadow:0 1px 3px #000">${m.hp.toLocaleString()} / ${m.max.toLocaleString()} health</span></div>
+      <p class="status">Every hit in every Monster Raid battle also hurts the Titan. Your class has ${m.days} day${m.days === 1 ? "" : "s"} left to beat it and win a trophy!</p>`;
+    document.getElementById("titanSec").hidden = false;
+  } catch (e) {}
+})();
 [1, 2].forEach((g) => { const sel = document.getElementById("sel" + g); sel.onchange = () => show(g, sel.value); show(g, "journey"); });
 </script>
 </body>
